@@ -66,3 +66,7 @@ Both watch production and test builds compile. Added HR-band boundary/pulse test
 ## Live telemetry revision
 
 34/35 PacePilot and 27/27 Gut Train simulator tests pass; raw current logs are `tests/live-simulator-results.txt` in each app. Both PRGs compile. Web53 tests and production build pass, plus isolated local HTTP lifecycle smoke checks. Tests do not establish physical watch/phone transmission reliability or visual acceptance.
+
+## Debugging revision
+
+Current simulator results: PacePilot 36/36, Gut Train 28/28. The cooldown regression and direct/queued resume telemetry tests pass. Current raw logs are `tests/debug-simulator-results.txt` in each app. Web: 54/54 tests plus 1/1 real-Redis integration test; builds and local HTTP smoke checks pass. See the root DEBUG_REPORT.md for fixes and remaining device acceptance.

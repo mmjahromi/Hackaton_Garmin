@@ -29,7 +29,7 @@ mkdir -p bin
 "$SDK/bin/monkeydo" bin/guttrain-test.prg fenix7pro -t
 ```
 
-Both builds compile. All 27 tests pass in the simulator for this revision; see `tests/live-simulator-results.txt`. Native menu interaction and device sensor/haptic behavior still need acceptance testing. No physical-watch or visual validation has been performed for this revision. Sideload the production PRG into `GARMIN/APPS` using Garmin’s supported USB workflow and verify sensor permissions, buttons, cue timing, offline storage, and explicit sharing before presenting a hardware demo.
+Both builds compile. All 28 tests pass in the simulator for this revision; see `tests/debug-simulator-results.txt`. Native menu interaction and device sensor/haptic behavior still need acceptance testing. No physical-watch or visual validation has been performed for this revision. Sideload the production PRG into `GARMIN/APPS` using Garmin’s supported USB workflow and verify sensor permissions, buttons, cue timing, offline storage, and explicit sharing before presenting a hardware demo.
 
 Dashboard instructions: `../gut-train-web/README.md`.
 

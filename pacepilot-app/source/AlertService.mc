@@ -7,8 +7,9 @@ class AlertGate {
     function initialize() {}
     function allow(id, now) {
         if (id == lastId) { return false; }
+        if (lastAt != null && now >= lastAt && now - lastAt < 10000) { return false; }
+        // Deduplicate only cues actually emitted, not those deferred by cooldown.
         lastId = id;
-        if (lastAt != null && now - lastAt < 10000) { return false; }
         lastAt = now;
         return true;
     }

@@ -24,9 +24,9 @@ Both apps default to keeping session summaries on the watch. Sharing is an expli
 
 ## Verification for this revision
 
-- Dashboard: **53 automated tests pass**, production build passes, and local HTTP checks return 200 for the page and both session endpoints.
+- Dashboard: **54 automated tests pass**, production build passes, and local HTTP checks return 200 for the page and both session endpoints.
 - Both watch production and test builds compile.
-- Current watch suites pass in the simulator: **35 PacePilot tests and 27 Gut Train tests**. Hardware acceptance remains outstanding.
+- Current watch suites pass in the simulator: **36 PacePilot tests and 28 Gut Train tests**. Hardware acceptance remains outstanding.
 - No physical-watch or visual acceptance has been performed. No screenshots were taken.
 
 Ready-to-sideload builds are in each watch app’s `release/` directory. Keep signing keys and credentials outside git. Before a device demo, verify the new setup/feedback screens, sensor input, offline storage, and opt-in sync on the actual watch.

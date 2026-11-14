@@ -278,8 +278,10 @@ function T11_storageAndAlertGate(logger as Logger) as Boolean {
     Test.assert(gate.allow(1,0));
     Test.assert(!gate.allow(1,11000));
     Test.assert(!gate.allow(2,1000));
-    Test.assert(!gate.allow(2,12000));
-    Test.assert(gate.allow(3,12000));
+    Test.assert(gate.allow(2,12000));
+    Test.assert(!gate.allow(2,23000));
+    Test.assert(!gate.allow(3,12000));
+    Test.assert(gate.allow(3,22000));
     return true;
 }
 
@@ -515,5 +517,17 @@ function liveFeedKeepsLatestPendingState(logger as Logger) as Boolean {
     Test.assert(feed.pending["status"].equals("active"));
     feed.send({"mode"=>"LIVE","status"=>"completed"},true);
     Test.assert(feed.pending["status"].equals("completed"));
+    return true;
+}
+
+(:test)
+function resumeDoesNotPublishCachedReadings(logger as Logger) as Boolean {
+    var feed=new LiveFeed();feed.busy=true;feed.lastStatus="paused";
+    feed.send({"mode"=>"LIVE","status"=>"active","heartRate"=>150,"speedMps"=>3.0},true);
+    Test.assert(feed.pending["heartRate"]==null && feed.pending["speedMps"]==null);
+    var queued=new LiveFeed();queued.busy=true;queued.lastStatus="active";
+    queued.send({"mode"=>"LIVE","status"=>"paused"},true);
+    queued.send({"mode"=>"LIVE","status"=>"active","heartRate"=>160,"speedMps"=>4.0},true);
+    Test.assert(queued.pending["heartRate"]==null && queued.pending["speedMps"]==null);
     return true;
 }

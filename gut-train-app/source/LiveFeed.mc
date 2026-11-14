@@ -21,6 +21,11 @@ class LiveFeed {
     function send(body,consent) {
         if (!consent || !body["mode"].equals("LIVE")) { return; }
         if (lastStatus.equals("completed") && status.equals("Live link connected")) { return; }
+        // The first resumed packet must not relabel pre-pause readings as fresh.
+        var previous=pending == null ? lastStatus : pending["status"];
+        if (previous.equals("paused") && body["status"].equals("active")) {
+            body["heartRate"]=null; body["speedMps"]=null;
+        }
         body["sampledAt"]=Time.now().value();
         if (busy) {
             if (pending != null || !body["status"].equals(lastStatus)) { pending=body; }

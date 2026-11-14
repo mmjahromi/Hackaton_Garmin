@@ -12,7 +12,7 @@ npm test
 npm run dev
 ```
 
-Open http://localhost:3000. For a production check, run `npm run build` and `npm start`. The 53 automated tests cover existing rules/APIs, the new PacePilot endpoint, retry deduplication, demo isolation, retention, validation, and nutrition logs. Local production HTTP smoke tests also verify both apps’ active, paused, and completed telemetry. No screenshots or visual checks were performed for this revision.
+Open http://localhost:3000. For a production check, run `npm run build` and `npm start`. The 54 automated tests cover existing rules/APIs, the new PacePilot endpoint, retry deduplication, demo isolation, retention, validation, and nutrition logs. Local production HTTP smoke tests also verify both apps’ active, paused, and completed telemetry. No screenshots or visual checks were performed for this revision.
 
 ## Data and integration
 
@@ -37,3 +37,7 @@ Each watch uploads at most one normal snapshot every 5 seconds, with immediate s
 PacePilot sends filtered HR when ready, elapsed time, goal, estimated moving time, speed, and active/paused/completed state. Gut Train sends HR, elapsed time, distance, speed, logged carbs/fluids, and state. Paused/completed packets carry no current HR. The dashboard shows the last120 snapshots (about 10 min at the nominal rate); gaps are not interpolated. After 20 sec without a fresh sample it marks the stream stale and stops presenting old HR as current. End delivery is best effort: if connectivity is lost while ending, the dashboard becomes stale rather than inventing completion.
 
 The API keeps the newest session per app/mode for up to 24 h, with atomic Redis ordering checks to ignore duplicate, delayed, or post-completion packets. This is a shared hackathon feed, not multi-user private tracking. Existing summaries remain separate. The new watch binaries must be installed; deploying the website does not update the watch.
+
+## Redis integration check
+
+With local `redis-server` and `redis-cli` installed, run `npm run test:redis`. This starts a temporary password-protected Redis bound to loopback, executes the production Lua storage code, and shuts it down. It verifies concurrent/out-of-order packets, completion protection, separate channels, bounded history, and expiry configuration without touching production data. Latest result: 1/1 integration test passes, in addition to 54/54 standard tests.

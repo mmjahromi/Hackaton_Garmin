@@ -5,6 +5,8 @@ export const dynamic = "force-dynamic";
 // Read a whole number from the watch's payload, rejecting anything outside
 // a sane range so one bad request can't corrupt the dashboard.
 function wholeNumber(value, min, max) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && !value.trim()) return null;
   const number = Number(value);
   if (!Number.isFinite(number) || number < min || number > max) {
     return null;

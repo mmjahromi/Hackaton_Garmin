@@ -404,6 +404,7 @@ class SessionView extends WatchUi.View {
         } else {
             _pausedMs+=System.getTimer()-_pauseAt; paused=false;
             _previousMagnitude=null;
+            _hr=null; _currentSpeed=null;
             startSensors();
             if (_recording != null) { _recording.start(); }
         }

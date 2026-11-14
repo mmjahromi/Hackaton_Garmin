@@ -46,9 +46,9 @@ LIGHT is intentionally untouched in both apps: Garmin handles native backlight b
 
 ## Verification
 
-SDK 9.1.0, fenix7pro profile, Java headless, compile type level0. Both production/test PRGs compile. Current suites: PacePilot35, Gut Train27. New tests cover band boundaries, unknown HR, pulse vs steady, low-band dwell/reset, and pause clock exclusion. Initial simulator launch errors/timeouts were resolved during retries: **all 35 PacePilot and 27 Gut Train tests pass**. Current logs are `tests/live-simulator-results.txt` under each app. Old baseline logs with29/22 passes apply to older code only. No physical or visual acceptance.
+SDK 9.1.0, fenix7pro profile, Java headless, compile type level0. Both production/test PRGs compile. Current suites: PacePilot36, Gut Train28. New tests cover band boundaries, unknown HR, pulse vs steady, low-band dwell/reset, and pause clock exclusion. Initial simulator launch errors/timeouts were resolved during retries: **all 36 PacePilot and 28 Gut Train tests pass**. Current logs are `tests/debug-simulator-results.txt` under each app. Old baseline logs with29/22 passes apply to older code only. No physical or visual acceptance.
 
-Dashboard 53 tests pass; production build and local/live HTTP200 checks passed in nutrition/recovery revision. Current watch-only work reran the53 tests. Build commands are in app READMEs. Production/test PRGs and SHA256 fingerprints are under each app's release folder.
+Dashboard 54 tests pass; production build and local/live HTTP200 checks passed in nutrition/recovery revision. Current watch-only work reran the54 tests. Build commands are in app READMEs. Production/test PRGs and SHA256 fingerprints are under each app's release folder.
 
 SDK path: `cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg"`.
 Signing key: `$HOME/.garmin/developer_key.der` (never expose or commit).
@@ -87,7 +87,16 @@ Latest user explicitly requested live HR and activity following. Implemented:
 - Gut Train: publishLive from tick, pause/resume, finish; HR suppressed on stop. Menus stop the session and hide its timer; a long-open menu can yield stale status until the workout view returns.
 - Web: `/api/live`, `lib/live.js`, `LiveActivity.js`, atomic Redis Lua in store.js. Four channels max (two apps × LIVE/DEMO); each holds the most-recent session and 120 samples; samples are not mixed across sessions. Older-session packets and duplicate sequences are ignored; completed session cannot reopen.24 h expiry.
 - Live panel:2 sec polling,1 sec age display, stale threshold20 sec using received/sample timestamps, missing HR gaps in chart, no fake completion. Existing summary refresh still5 sec. At most one polling request in flight;8 sec request timeout.
-- Current checks:35 PacePilot tests,27 Gut Train tests,53 web tests pass. Both watch builds and Next production build pass. Local HTTP smoke verifies both apps active/paused/completed using synthetic DEMO records in explicitly nonpersistent memory. No fake records were posted to production.
+- Current checks:36 PacePilot tests,28 Gut Train tests,54 web tests pass. Both watch builds and Next production build pass. Local HTTP smoke verifies both apps active/paused/completed using synthetic DEMO records in explicitly nonpersistent memory. No fake records were posted to production.
 - Website deployed with the new endpoint/panel. User still needs updated release PRGs on watch, phone online, explicit sharing enabled. Hardware end-to-end stream and actual UI appearance remain unverified.
 
 Visual redesign remains Claude's task. New LiveActivity markup/chart is functional scaffolding, not the requested polished design. Improve presentation while preserving timestamps, gaps, consent, and accessibility. For race conditions, preserve atomic EVAL compare/update behavior. For a private product, replace app-only channels with authenticated device/user identity; the current app/mode channels deliberately support one shared demo participant per app/mode.
+
+## Debugging revision — 14 November 2026
+
+Fixed three issues found by targeted review:
+1. AlertGate marked a cue as emitted before cooldown allowed it. A still-relevant cue now remains eligible after cooldown; duplicate emitted cues remain suppressed. Existing alert regression assertions now cover the corrected behavior.
+2. Gut Train resumed with cached HR/speed still set. It now clears them before sensor restart. Both LiveFeed senders also strip cached HR/speed on the first paused-to-active packet, including queued transitions. New simulator regressions cover direct and queued resume.
+3. Nutrition API used Number(value), allowing null/booleans/blanks/arrays to become valid numbers. Type/blank guards reject these while preserving legitimate numeric zero and numeric-string compatibility. The regression was observed failing before the fix and passes afterward.
+
+Current validation: 36/36 PacePilot, 28/28 Gut Train, 54/54 web tests, plus 1/1 real-Redis integration test. Both watch builds and Next production build succeed. Raw watch logs: tests/debug-simulator-results.txt. See DEBUG_REPORT.md. Local production HTTP smoke passed; public API validation fix deployed. Physical watch/phone, native menu behavior, actual haptic feel and visual acceptance remain outstanding.

@@ -203,3 +203,14 @@ test('nutrition logs preserve confirmed choices and filter invalid feed records'
   assert.equal(bounded.foodType, null);
   assert.equal(bounded.targetConfirmed, false);
 });
+
+
+test('required nutrition numbers reject null, booleans, blanks and containers', async () => {
+  for (const field of ['durationS','carbsG','targetGph','rateGph','gutRating','nextTargetGph']) {
+    for (const invalid of [null, true, false, '', ' ', [], [50], {}]) {
+      assert.equal((await sessions.POST(request({...session,[field]:invalid}))).status,400,field+' accepted '+JSON.stringify(invalid));
+    }
+  }
+  assert.equal((await sessions.POST(request({...session,durationS:0,carbsG:0,rateGph:0}))).status,201);
+  assert.equal((await sessions.POST(request({...session,targetGph:'60'}))).status,201);
+});
