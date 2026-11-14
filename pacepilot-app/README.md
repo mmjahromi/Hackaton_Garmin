@@ -16,7 +16,7 @@ PacePilot turns sustained effort into one clear suggestion on the wrist. Running
 - Combines qualified GPS speed and accelerometer evidence to estimate movement.
 - Adds “Climb likely” context when a sustained pressure trend qualifies.
 - Shows missing, stale, unsupported, and failed sensor states.
-- Saves one local LIVE session summary with session time, estimated moving time, unknown-motion time, HR coverage, and walk-prompt count.
+- Saves the latest 20 local LIVE session summaries with session time, estimated moving time, unknown-motion time, HR coverage, and walk-prompt count.
 - Runs a reproducible, clearly labeled demo through the same filtering and coaching rules.
 
 The intended benefit is making an easy run/walk session easier to understand and finish. User benefit and long-term habit change have not yet been measured.
@@ -39,7 +39,7 @@ The recovery threshold is the chosen upper HR bound minus 5 bpm. UNKNOWN movemen
 
 1. Load the app into the Fenix 7 Pro simulator using the VS Code steps below.
 2. On Choose mode, press DOWN to select Replay standard.
-3. Press START through the example low HR, high HR, and session-goal screens.
+3. Press START through the HR band, goal, energy, soreness, today’s goal choice, and sharing screens. Sharing defaults off.
 4. At Confirm settings, press START again.
 5. Watch the **DEMO 4x** sequence finish in about 45 real seconds.
 
@@ -172,11 +172,12 @@ For sideloading, use Garmin's supported USB transfer workflow to copy `bin/pacep
 
 | Screen | Controls |
 | --- | --- |
-| Setup | UP/DOWN adjusts mode, HR low, HR high, or goal. START advances. BACK returns to the previous setting. The final START confirms and starts. |
+| Setup | UP/DOWN adjusts mode, HR band, goal, energy, soreness, today’s goal choice, and optional sharing. START advances. BACK returns to the previous setting. The final START confirms and starts. |
 | Active | START pauses. DOWN requests a walk break. UP accepts running only when readiness is offered. BACK opens end confirmation with Cancel selected. |
 | End confirmation | UP/DOWN chooses Cancel or End. START confirms. BACK cancels. Coaching continues until confirmed. |
 | Paused | START resumes with fresh HR acquisition. BACK opens end confirmation. |
-| Complete | UP/DOWN switches summary pages. START returns to setup. |
+| Complete | Confirm effort, next goal, and a routine with START; UP/DOWN changes choices. Then UP/DOWN switches summary pages and START returns. Hold UP retries a consented upload. |
+| History | Hold UP from setup to browse the latest 20 local sessions; UP/DOWN browses and START returns. |
 | Extra metrics | Hold UP during an active session to toggle speed and estimated moving time. This optional page is unnecessary for any core control. |
 
 Mode choices are LIVE, standard DEMO 4x, and HR-loss DEMO 4x. All demo screens are explicitly marked. Demo uses a 180-second virtual goal and four sequential one-second updates per real timer tick. The standard fixture automatically sends the explicit ACCEPT_RUN event at virtual second 160 to complete its scripted demonstration.
@@ -193,7 +194,7 @@ Source badges: `ok` = valid, `--` = missing/acquiring, `old` = stale, `n/a` = un
 - SessionController owns lifecycle, event precedence, goal accounting, pause/resume, bounded transition records, and completion.
 - Presenter reads state and formats the round display. Font measurement bounds text to the circular screen. Delegate translates controls.
 - AlertService deduplicates transition haptics with a ten-real-second cooldown.
-- SummaryStore persists schema-v1 config and the last LIVE summary using string keys. DEMO never replaces it.
+- SummaryStore persists schema-v1 config and the latest 20 LIVE summaries using string keys. DEMO never replaces it.
 - Tests exercise the production Monkey C classes directly in the target simulator.
 
 ## Limitations and disabled features
@@ -206,7 +207,15 @@ Source badges: `ok` = valid, `--` = missing/acquiring, `old` = stale, `n/a` = un
 - Raw sensor timestamps record callback reception, so an internal device sensor stall may be undetectable.
 - The HR-loss replay suppresses readiness until fresh acquisition and rule holds qualify again. It does not promise the standard replay's recovery timestamp.
 - A tick gap over two seconds credits no elapsed time. Resuming requires fresh post-resume HR samples.
-- Only one local LIVE summary is retained. An unsuccessful write is shown as unsaved on the second summary page.
-- No cloud dashboard, route history, medical zone estimation, or automatic escalation of next-session goals.
+- Up to 20 local LIVE summaries are retained. An unsuccessful write is shown as unsaved on the second summary page.
+- No route history, medical zone estimation, or automatic escalation of next-session goals.
 
 See TEST_RESULTS.md for observed evidence and DEMO.md for the pitch.
+
+## Recovery and shared dashboard
+
+Before a session, report energy and soreness. Low energy or high soreness preselects a shorter option; you review and confirm it. Afterward, choose Easy, About right, Too hard, or Skip rating; then confirm Repeat goal, Five minutes shorter (minimum one minute), or Choose later. An easy rating never automatically increases your goal. Meal, drink, or rest routines are optional on-screen cues, not scheduled notifications or inferred nutritional requirements.
+
+Sharing defaults off for each session. When enabled, the completed LIVE summary and confirmed feedback are sent through Garmin Communications to `https://gut-train-web.vercel.app/api/pace-sessions`. DEMO never uploads or changes saved goals. Coaching and local history work offline. A failed upload is shown on the summary; hold UP there to retry. There is no background upload queue.
+
+The dashboard combines both apps but does not pair users or remotely change watch goals. It is a public hackathon demo: anyone with its URL can read shared summaries. Keep sharing off for private sessions. Local history is retained if connectivity fails. The companion source and running instructions are in `../gut-train-web/README.md`.

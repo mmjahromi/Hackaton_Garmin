@@ -1042,3 +1042,35 @@ tr.fresh td {
   .activity-facts { grid-template-columns: minmax(0, 1fr); }
   .activity-facts > div:nth-child(n) { padding: 12px 0; border-left: 0; }
 }
+
+.shared-header, .shared-nav, .sharing-note, .shared-main {
+  max-width: 1120px; margin: 0 auto; padding: 24px;
+}
+.shared-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.shared-header h1 { font-size: clamp(26px, 4vw, 40px); letter-spacing: -0.04em; }
+.shared-nav { display: flex; gap: 12px; padding-top: 0; padding-bottom: 8px; }
+.shared-nav button { padding: 10px 18px; border: 1px solid #a99884; border-radius: 24px; background: transparent; color: inherit; cursor: pointer; font: inherit; }
+.shared-nav button[aria-pressed="true"] { background: #aa451c; border-color: #aa451c; color: white; }
+.shared-nav button:focus-visible { outline: 3px solid #dd6c34; outline-offset: 3px; }
+.sharing-note { font-size: 13px; opacity: .8; padding-top: 12px; padding-bottom: 0; }
+.shared-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.shared-cards article, .shared-panel { border: 1px solid #a9988466; border-radius: 18px; padding: 24px; }
+.shared-cards h2 { font-size: 15px; font-weight: 500; }
+.shared-cards strong { display: block; font-size: 48px; margin: 14px 0; }
+.shared-panel { margin-top: 24px; }
+.shared-panel h2 { margin-bottom: 20px; }
+.shared-goal { font-size: 36px; margin-bottom: 8px; }
+.shared-facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0; }
+.shared-facts dt { font-size: 13px; opacity: .75; }
+.shared-facts dd { margin: 6px 0; }
+.shared-table { overflow-x: auto; }
+.shared-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.shared-table th, .shared-table td { padding: 14px 12px; text-align: left; border-bottom: 1px solid #a9988444; vertical-align: top; }
+.shared-table summary { cursor: pointer; margin-top: 6px; }
+@media (max-width: 640px) {
+  .shared-header { display: block; }
+  .shared-header p[role="status"] { margin-top: 12px; }
+  .shared-cards { grid-template-columns: 1fr; }
+  .shared-facts { grid-template-columns: 1fr 1fr; }
+  .shared-header, .shared-nav, .sharing-note, .shared-main { padding-left: 16px; padding-right: 16px; }
+}

@@ -16,8 +16,8 @@ class HomeDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        var view = new SessionView(Plan.target());
-        WatchUi.pushView(view, new SessionDelegate(view), WatchUi.SLIDE_UP);
+        var view = new NutritionSetup(null, "");
+        WatchUi.pushView(view, new NutritionDelegate(view), WatchUi.SLIDE_UP);
         return true;
     }
 

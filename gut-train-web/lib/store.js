@@ -99,3 +99,26 @@ export async function listDays() {
     : [...(globalThis.__gutTrainDays ?? new Map()).values()];
   return values.map((value) => JSON.parse(value)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, MAX_DAYS);
 }
+
+// Separate keys preserve each app's identity. Session IDs make retries idempotent.
+const PACE_KEY = "pacepilot:sessions:v1";
+export async function upsertPaceSession(session) {
+  const key = session.mode + ":" + session.sessionId;
+  if (isPersistent) {
+    await redis(["HSET", PACE_KEY, key, JSON.stringify(session)]);
+    const keys = await redis(["HKEYS", PACE_KEY]);
+    const expired = keys.sort((a, b) => Number(b.split(":").at(-1)) - Number(a.split(":").at(-1))).slice(200);
+    if (expired.length) await redis(["HDEL", PACE_KEY, ...expired]);
+    return;
+  }
+  const records = globalThis.__pacePilotSessions ??= new Map();
+  records.set(key, JSON.stringify(session));
+  const expired = [...records.keys()].sort((a, b) => Number(b.split(":").at(-1)) - Number(a.split(":").at(-1))).slice(200);
+  for (const id of expired) records.delete(id);
+}
+export async function listPaceSessions() {
+  const rows = isPersistent
+    ? await redis(["HVALS", PACE_KEY])
+    : [...(globalThis.__pacePilotSessions ?? new Map()).values()];
+  return rows.map(row => JSON.parse(row)).sort((a, b) => b.sessionId - a.sessionId).slice(0, 200);
+}

@@ -21,16 +21,17 @@ class SummaryView extends WatchUi.View {
         View.initialize();
         _summary = summary;
         _gutLabel = gutLabel;
-        sync();
+        _syncStatus = summary.hasKey("localSaved") && summary["localSaved"] == true ? "Saved on watch" : "Local save failed";
+        if (demoMode) { _syncStatus = "Demo / not saved"; }
+        if (nutritionShare && !demoMode) { sync(); }
     }
 
     private function sync() as Void {
         if (SYNC_URL.length() == 0) {
             return;
         }
-        _summary["at"] = Time.now().value();
         _syncStatus = "Syncing...";
-        Communications.makeWebRequest(
+        try { Communications.makeWebRequest(
             SYNC_URL,
             _summary as Dictionary<Object, Object>,
             {
@@ -38,7 +39,8 @@ class SummaryView extends WatchUi.View {
                 :headers => { "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON },
                 :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
             },
-            method(:onSynced));
+            method(:onSynced)); }
+        catch (e) { _syncStatus = "Share failed"; }
     }
 
     function onSynced(code as Number, data as Dictionary or String or Null) as Void {
@@ -70,7 +72,7 @@ class SummaryView extends WatchUi.View {
         dc.drawText(cx, h * 0.44, Graphics.FONT_SMALL, "Gut: " + _gutLabel + " (" + rating + "/5)", center);
 
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 0.58, Graphics.FONT_XTINY, "NEXT TARGET", center);
+        dc.drawText(cx, h * 0.58, Graphics.FONT_XTINY, "YOUR CONFIRMED PLAN", center);
 
         var color = Graphics.COLOR_YELLOW;
         if (next > target) {

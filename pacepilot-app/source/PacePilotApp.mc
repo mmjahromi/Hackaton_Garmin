@@ -31,10 +31,21 @@ class PacePilotView extends WatchUi.View {
     var summaryPage = 0;
     var metricsPage = false;
     var configSaved = true;
+    var energy = 1;
+    var soreness = 0;
+    var share = false;
+    var todayChoice = 0;
+    var feedbackStage = 0;
+    var effort = 1;
+    var nextChoice = 0;
+    var routine = 0;
+    var sync;
+    var historyIndex = -1;
     var lastSummary;
     function initialize() {
         View.initialize();
         storage = new SummaryStore();
+        sync = new DashboardSync();
         config = storage.loadConfig();
         lastSummary = storage.load();
         alerts = new AlertService();
@@ -52,16 +63,17 @@ class PacePilotView extends WatchUi.View {
     function ready() { return controller == null || controller.lifecycle == :READY; }
     function startSession() {
         if (!Config.valid(config)) { return; }
+        sync = new DashboardSync();
         configSaved = storage.saveConfig(config);
         var c = Config.defaults();
         c[:hrLowBpm] = config[:hrLowBpm]; c[:hrHighBpm] = config[:hrHighBpm];
         c[:recoverBpm] = config[:recoverBpm];
-        c[:goalSec] = mode == :DEMO ? 180 : config[:goalSec];
+        c[:goalSec] = mode == :DEMO ? 180 : Recovery.nextGoal(config[:goalSec], todayChoice);
         var provider = mode == :LIVE ? new LiveProvider() : new ReplayProvider(scenario);
         controller = new SessionController(c, provider, storage, mode);
         controller.sessionId = Time.now().value();
         origin = System.getTimer(); lastReal = origin; virtualMs = 0;
-        alerts = new AlertService(); summaryPage = 0;
+        alerts = new AlertService(); summaryPage = 0; feedbackStage = 0; effort = 1; routine = 0;
         controller.dispatch(:START); controller.tick(0);
     }
     function onTick() as Void {
@@ -97,6 +109,7 @@ class PacePilotView extends WatchUi.View {
         }
     }
     function select() {
+        if (historyIndex >= 0) { historyIndex = -1; WatchUi.requestUpdate(); return; }
         if (endConfirm) {
             if (endYes) {
                 controller.endedAt = Time.now().value();
@@ -105,10 +118,33 @@ class PacePilotView extends WatchUi.View {
             }
             endConfirm = false;
         } else if (ready()) {
-            if (stage < 4) { stage++; } else { startSession(); }
+            if (stage == 5) { todayChoice = Recovery.suggestedChoice(energy, soreness, 1); }
+            if (stage < 8) { stage++; } else { startSession(); }
         } else if (controller.lifecycle == :COMPLETE) {
-            controller.dispatch(:RESET); controller.tick(mode == :DEMO ? virtualMs : System.getTimer()-origin);
-            controller = null; stage = 0;
+            if (feedbackStage == 0) {
+                nextChoice = Recovery.suggestedChoice(energy, soreness, effort);
+                feedbackStage = 1;
+            } else if (feedbackStage == 1) {
+                feedbackStage = 2;
+            } else if (feedbackStage == 2) {
+                var next = Recovery.nextGoal(controller.config[:goalSec], nextChoice);
+                controller.summary[:energy] = energy;
+                controller.summary[:soreness] = soreness;
+                controller.summary[:effort] = effort;
+                controller.summary[:nextGoalSec] = next;
+                controller.summary[:routine] = routine;
+                controller.saved = storage.save(controller.summary);
+                if (mode == :LIVE && next != null) {
+                    config[:goalSec] = next;
+                    configSaved = storage.saveConfig(config);
+                }
+                sync.send(controller.summary, share);
+                lastSummary = storage.load();
+                feedbackStage = 3;
+            } else {
+                controller.dispatch(:RESET); controller.tick(mode == :DEMO ? virtualMs : System.getTimer()-origin);
+                controller = null; stage = 0; share = false;
+            }
         } else {
             controller.dispatch(controller.lifecycle == :PAUSED ? :RESUME : :PAUSE);
             controller.tick(mode == :DEMO ? virtualMs : System.getTimer()-origin);
@@ -116,7 +152,10 @@ class PacePilotView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
     function adjust(direction) {
-        if (endConfirm) { endYes = !endYes; }
+        if (historyIndex >= 0) {
+            var records = storage.history();
+            if (records.size() > 0) { historyIndex = (historyIndex + direction + records.size()) % records.size(); }
+        } else if (endConfirm) { endYes = !endYes; }
         else if (ready()) {
             if (stage == 0) {
                 // Three explicit choices: live, standard replay, HR-loss replay.
@@ -135,23 +174,38 @@ class PacePilotView extends WatchUi.View {
                     config[:hrHighBpm] = high; config[:recoverBpm] = high - 5;
                 }
             }
+            if (stage == 4) { energy = (energy + direction + 3) % 3; }
+            if (stage == 5) { soreness = (soreness + direction + 3) % 3; }
+            if (stage == 6) { todayChoice = 1 - todayChoice; }
+            if (stage == 7) { share = !share; }
             if (stage == 3) {
                 var goal = config[:goalSec] + direction * 60;
                 if (goal >= 60 && goal <= 3600) { config[:goalSec] = goal; }
             }
-        } else if (controller.lifecycle == :COMPLETE) { summaryPage = 1 - summaryPage; }
+        } else if (controller.lifecycle == :COMPLETE) {
+            if (feedbackStage == 0) { effort = (effort + direction + 4) % 4; }
+            else if (feedbackStage == 1) { nextChoice = (nextChoice + direction + 3) % 3; }
+            else if (feedbackStage == 2) { routine = (routine + direction + 4) % 4; }
+            else { summaryPage = 1 - summaryPage; }
+        }
         else if (controller.lifecycle == :ACTIVE) {
             controller.dispatch(direction > 0 ? :WALK_NOW : :ACCEPT_RUN);
         }
         WatchUi.requestUpdate();
     }
     function menu() {
-        if (!ready() && controller.lifecycle == :ACTIVE) {
+        if (ready()) {
+            historyIndex = historyIndex >= 0 ? -1 : 0;
+            WatchUi.requestUpdate();
+        } else if (controller.lifecycle == :COMPLETE && feedbackStage == 3) {
+            sync.send(controller.summary, share);
+        } else if (controller.lifecycle == :ACTIVE) {
             metricsPage = !metricsPage;
             WatchUi.requestUpdate();
         }
     }
     function back() {
+        if (historyIndex >= 0) { historyIndex = -1; WatchUi.requestUpdate(); return true; }
         if (endConfirm) { endConfirm = false; }
         else if (ready()) {
             if (stage > 0) { stage--; }

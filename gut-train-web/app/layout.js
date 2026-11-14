@@ -5,8 +5,8 @@ const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
 const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata = {
-  title: "Gut Train",
-  description: "Train your gut for race day: carbs per hour, gut comfort and a weekly plan, logged from a Garmin watch.",
+  title: "PacePilot + Gut Train",
+  description: "Activity, recovery check-ins, and fueling history from two Garmin watch apps.",
 };
 
 export default function RootLayout({ children }) {

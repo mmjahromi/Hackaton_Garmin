@@ -37,6 +37,20 @@ module Presenter {
         var small = Graphics.FONT_SMALL;
         var large = Graphics.FONT_MEDIUM;
         line(dc, 27, v.mode == :LIVE ? "LIVE" : "DEMO 4x", tiny, accent);
+        if (v.historyIndex >= 0) {
+            var records = v.storage.history();
+            line(dc, 70, "Recent sessions", small, white);
+            if (records.size() == 0) { line(dc, 120, "No live sessions yet", tiny, grey); }
+            else {
+                var record = records[v.historyIndex % records.size()];
+                line(dc, 105, "Session " + timeText(record[:sessionSec]), small, accent);
+                var label = record.hasKey(:effort) ? ["Easy", "About right", "Too hard", "Skipped"][record[:effort]] : "Not rated";
+                line(dc, 140, label, small, white);
+                line(dc, 174, "UP / DOWN history", tiny, grey);
+            }
+            line(dc, 210, "START returns", tiny, white);
+            return;
+        }
         if (v.endConfirm) {
             line(dc, 85, "End session?", large, white);
             line(dc, 120, v.endYes ? "End selected" : "Cancel selected", small, accent);
@@ -45,22 +59,50 @@ module Presenter {
             return;
         }
         if (v.ready()) {
-            var titles = ["Choose mode", "Example HR low", "Example HR high", "Session goal", "Confirm settings"];
+            var titles = ["Choose mode", "Example HR low", "Example HR high", "Session goal", "Energy today", "Soreness today", "Today's session", "Share summary?", "Confirm settings"];
             var values = [v.mode == :LIVE ? "Live sensors" : (v.scenario == :LOSS ? "Replay HR loss" : "Replay standard"),
                 shown(v.config[:hrLowBpm]) + " bpm", shown(v.config[:hrHighBpm]) + " bpm",
                 (v.config[:goalSec]/60).toString() + " min",
+                ["Low", "Okay", "Good"][v.energy],
+                ["None", "Some", "High"][v.soreness],
+                timeText(Recovery.nextGoal(v.config[:goalSec], v.todayChoice)),
+                v.share ? "Public demo site" : "Keep on watch",
                 shown(v.config[:hrLowBpm]) + "-" + shown(v.config[:hrHighBpm]) + " bpm"];
             line(dc, 64, titles[v.stage], small, white);
             line(dc, 99, values[v.stage], large, accent);
-            line(dc, 135, v.stage == 4 ? "Experimental rules" : "UP / DOWN adjusts", tiny, grey);
+            line(dc, 135, v.stage == 8 ? "Experimental rules" : "UP / DOWN adjusts", tiny, grey);
+            if (v.stage == 7) {
+                line(dc, 158, "gut-train-web.vercel.app", tiny, grey);
+                line(dc, 187, "START confirms choice", tiny, white);
+                line(dc, 213, "Summary visible publicly", tiny, grey);
+                return;
+            }
             line(dc, 158, v.mode == :DEMO ? "Replay goal 3 min" : "Walks count toward goal", tiny, grey);
-            line(dc, 187, v.stage == 4 ? "START confirms + starts" : "START next / BACK", tiny, white);
+            line(dc, 187, v.stage == 8 ? "START confirms + starts" : "START next / BACK", tiny, white);
             if (v.stage == 0 && v.lastSummary != null) {
                 line(dc, 213, "Last: " + timeText(v.lastSummary[:sessionSec]), tiny, grey);
             } else { line(dc, 213, "Choose HR band", tiny, grey); }
             return;
         }
         var c = v.controller;
+        if (c.lifecycle == :COMPLETE && v.feedbackStage < 3) {
+            var titles = ["How manageable?", "Next session", "My after-run routine"];
+            var choices = [
+                ["Easy", "About right", "Too hard", "Skip rating"][v.effort],
+                ["Repeat goal", "Five minutes shorter", "Choose later"][v.nextChoice],
+                ["No reminder", "Meal routine", "Drink routine", "Rest routine"][v.routine]
+            ];
+            line(dc, 65, titles[v.feedbackStage], small, white);
+            line(dc, 105, choices[v.feedbackStage], small, accent);
+            var note = v.feedbackStage == 1 ? "Your choice / confirm" : "UP / DOWN adjusts";
+            line(dc, 145, note, tiny, grey);
+            if (v.feedbackStage == 1) {
+                var next = Recovery.nextGoal(c.config[:goalSec], v.nextChoice);
+                line(dc, 173, next == null ? "No goal change" : timeText(next) + " next goal", tiny, white);
+            }
+            line(dc, 207, "START confirms", tiny, white);
+            return;
+        }
         if (c.lifecycle == :COMPLETE) {
             line(dc, 61, c.summary[:goalMet] ? "Goal met" : "Ended early", large, accent);
             if (v.summaryPage == 0) {
@@ -73,8 +115,10 @@ module Presenter {
                 line(dc, 131, "Walk prompts " + c.walkPromptCount, tiny, grey);
                 line(dc, 157, c.mode == :DEMO ? "Simulated session" : (c.saved ? "Summary saved" : "Summary unsaved"), tiny, grey);
             }
-            line(dc, 187, "UP / DOWN details", tiny, grey);
-            line(dc, 213, "START returns", tiny, white);
+            var routines = ["UP / DOWN details", "Follow your meal routine", "Follow your drink routine", "Make time to rest"];
+            line(dc, 176, routines[v.routine], tiny, grey);
+            line(dc, 197, v.sync.status, tiny, grey);
+            line(dc, 220, "START returns", tiny, white);
             return;
         }
         if (c.lifecycle == :PAUSED) {

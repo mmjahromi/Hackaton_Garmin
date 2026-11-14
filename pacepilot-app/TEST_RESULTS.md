@@ -1,5 +1,11 @@
 # PacePilot verification
 
+## Nutrition/recovery revision — 14 November 2026
+
+Production and test builds compile with SDK 9.1.0. The suite now contains 31 tests, including recovery choices, default-off sharing, and the expanded setup/feedback flow. These revised tests have **not executed successfully in this session**: the macOS simulator launcher returned `kLSNoExecutableErr`, direct launch exited 134, and monkeydo waited without results. The earlier 29-test log below applies only to the earlier implementation. Hardware and visual acceptance remain unverified.
+
+## Earlier baseline evidence
+
 Date: 14 November 2026. Implementation commit: `5c6e67eec3557a9cf35be9ca7fcf88e8ab286e21`.
 
 SDK 9.1.0, installed `fenix7pro` device profile, API 5.2, 260 × 260. Manifest minimum API 3.2.0.

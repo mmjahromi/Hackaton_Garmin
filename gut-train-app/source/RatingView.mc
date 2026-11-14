@@ -103,17 +103,9 @@ class RatingDelegate extends WatchUi.BehaviorDelegate {
     private function confirm() as Void {
         var rating = _view.rating;
         var target = _summary["targetGph"] as Number;
-        var rate = _summary["rateGph"] as Number;
-        var next = Plan.nextTarget(target, rate, rating);
-
         _summary["gutRating"] = rating;
-        _summary["nextTargetGph"] = next;
-
-        // Demo sessions must not move the real programme.
-        if (!demoMode) {
-            Plan.saveSession(next);
-        }
-        WatchUi.switchToView(new SummaryView(_summary, _view.label()),
-            new SummaryDelegate(), WatchUi.SLIDE_LEFT);
+        _summary["nextTargetGph"] = target;
+        var nextView = new NutritionSetup(_summary, _view.label());
+        WatchUi.switchToView(nextView, new NutritionDelegate(nextView), WatchUi.SLIDE_LEFT);
     }
 }

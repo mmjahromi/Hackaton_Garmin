@@ -373,7 +373,7 @@ function T08_screenAndControls(logger as Logger) as Boolean {
     var v=new PacePilotView();
     v.config=Config.defaults(); v.mode=:DEMO;
     var dc=new DrawingProbe();
-    for(var stage=0;stage<=4;stage++) { v.stage=stage; Presenter.render(dc,v); }
+    for(var stage=0;stage<=8;stage++) { v.stage=stage; Presenter.render(dc,v); }
     v.select();
     Test.assert(v.controller.lifecycle==:ACTIVE && v.controller.mode==:DEMO);
     v.controller.dispatch(:PAUSE); v.controller.tick(0); Presenter.render(dc,v);
@@ -385,6 +385,12 @@ function T08_screenAndControls(logger as Logger) as Boolean {
     v.back(); v.adjust(1); v.select();
     Test.assert(v.controller.lifecycle==:COMPLETE);
     Presenter.render(dc,v); v.adjust(1); Presenter.render(dc,v);
+    v.select(); Presenter.render(dc,v);
+    Test.assert(v.feedbackStage == 1);
+    v.select(); Presenter.render(dc,v);
+    Test.assert(v.feedbackStage == 2);
+    v.select(); Presenter.render(dc,v);
+    Test.assert(v.controller.summary[:effort] == 2 && v.controller.summary[:nextGoalSec] == 60);
     v.select(); Test.assert(v.ready());
     v.shutdown();
     return true;
@@ -436,5 +442,28 @@ function T04_sourceErrorStatus(logger as Logger) as Boolean {
     raw[:motionRms]=Contracts.missing(:UNSUPPORTED);
     var f=p.update(raw,0);
     Test.assert(f[:sourceStatus][:speed]==:ERROR && f[:sourceStatus][:motionRms]==:UNSUPPORTED);
+    return true;
+}
+
+(:test)
+function recoveryChoicesAreExplicit(logger as Logger) as Boolean {
+    Test.assert(Recovery.suggestedChoice(0,0,1)==1);
+    Test.assert(Recovery.suggestedChoice(2,2,0)==1);
+    Test.assert(Recovery.suggestedChoice(2,0,2)==1);
+    Test.assert(Recovery.suggestedChoice(2,0,1)==0);
+    Test.assert(Recovery.nextGoal(1200,0)==1200);
+    Test.assert(Recovery.nextGoal(1200,1)==900);
+    Test.assert(Recovery.nextGoal(180,1)==60);
+    Test.assert(Recovery.nextGoal(301,1)==60);
+    Test.assert(Recovery.nextGoal(1200,2)==null);
+    return true;
+}
+(:test)
+function sharingDefaultsToLocal(logger as Logger) as Boolean {
+    var v=new PacePilotView();
+    Test.assert(!v.share && v.sync.status.equals("Kept on watch"));
+    var summary={:mode=>:DEMO};
+    v.sync.send(summary,true);
+    Test.assert(v.sync.status.equals("Kept on watch"));
     return true;
 }

@@ -72,6 +72,15 @@ export async function POST(request) {
     avgCadence: optionalWholeNumber(body.avgCadence, 250),
     hotDrinkPrompts: optionalWholeNumber(body.hotDrinkPrompts, 500),
     demo: body.demo === true,
+    foodType: ["gel", "chews", "drink", "food"].includes(body.foodType) ? body.foodType : null,
+    targetConfirmed: body.targetConfirmed === true,
+    portionG: optionalWholeNumber(body.portionG, 200),
+    drinkIntervalS: optionalWholeNumber(body.drinkIntervalS, 7200),
+    fuelLog: Array.isArray(body.fuelLog) ? body.fuelLog.slice(0, 32).filter(entry =>
+      entry && Number.isInteger(entry.atS) && entry.atS >= 0 && entry.atS <= 86400 &&
+      Number.isInteger(entry.carbsG) && entry.carbsG > 0 && entry.carbsG <= 200 &&
+      ["gel", "chews", "drink", "food"].includes(entry.kind)
+    ).map(({ atS, carbsG, kind }) => ({ atS, carbsG, kind })) : [],
   };
 
   const missing = ["durationS", "carbsG", "targetGph", "rateGph", "gutRating", "nextTargetGph"]

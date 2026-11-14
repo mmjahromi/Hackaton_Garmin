@@ -207,7 +207,7 @@ export default function Dashboard({ initialSessions, initialDays = [], initialGo
         <section className="hero rise" aria-labelledby="hero-heading">
           <div className="hero-main">
             <h1 id="hero-heading" className="eyebrow">
-              Next session target
+              {latest?.targetConfirmed ? "Your confirmed fueling target" : "Next session target"}
               {latest?.demo && <span className="tag">from a demo session</span>}
             </h1>
             <p className={latest ? "big" : "big muted"}>
@@ -217,7 +217,7 @@ export default function Dashboard({ initialSessions, initialDays = [], initialGo
             <p className="hero-line">
               {latest
                 ? `Last session you ate ${latest.rateGph} g/h against a ${latest.targetGph} g/h target, and your gut felt ${GUT_LABELS[latest.gutRating - 1].toLowerCase()}.`
-                : "Move a little every day and practise eating on your weekly long session. Your activity and fuelling targets adapt as you go."}
+                : "Use Gut Train to follow your own fueling plan and record comfort on longer sessions. Confirm each next-session target on the watch."}
             </p>
 
             {goal ? (

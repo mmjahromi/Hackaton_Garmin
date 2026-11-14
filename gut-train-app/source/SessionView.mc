@@ -1,3 +1,4 @@
+import Toybox.Time;
 import Toybox.Activity;
 import Toybox.ActivityRecording;
 import Toybox.Attention;
@@ -32,6 +33,7 @@ class SessionView extends WatchUi.View {
     private var _finished as Boolean = false;
 
     private var _carbs as Number = 0;
+    private var _fuelLog as Array = [];
     private var _fluid as Number = 0;
     private var _lastFeedS as Number = 0;
     private var _alerted as Boolean = false;
@@ -130,7 +132,7 @@ class SessionView extends WatchUi.View {
 
     // Seconds between feeds so that one portion each time meets the target.
     private function intervalS() as Number {
-        return Plan.feedIntervalS(_target);
+        return 3600 * nutritionPortion / _target;
     }
 
     private function dueInS() as Number {
@@ -153,11 +155,8 @@ class SessionView extends WatchUi.View {
         }
         sampleSensors();
         var sinceDrink = elapsedS() - _lastDrinkS;
-        if (!_drinkDue && sinceDrink >= Sensors.drinkIntervalS(_temp)) {
+        if (!_drinkDue && nutritionDrinkSec > 0 && sinceDrink >= nutritionDrinkSec) {
             _drinkDue = true;
-            if (Sensors.drinkIntervalS(_temp) == 600 && sinceDrink < 900) {
-                _hotDrinkPrompts += 1;
-            }
             buzz(300);
         }
         if (dueInS() <= 0 && !_alerted) {
@@ -335,8 +334,11 @@ class SessionView extends WatchUi.View {
 
     function logFeed() as Void {
         if (Sensors.hardFeed(_hr, _userMaxHr)) { _hardFeeds += 1; }
-        _carbs += Plan.PORTION_G;
-        if (demoMode && _carbs == 3 * Plan.PORTION_G) {
+        _carbs += nutritionPortion;
+        if (_fuelLog.size() < 32) {
+            _fuelLog.add({"atS"=>elapsedS(), "carbsG"=>nutritionPortion, "kind"=>nutritionFood});
+        }
+        if (demoMode && _carbs == 3 * nutritionPortion) {
             closeStop(System.getTimer());
             _demoStopMs = System.getTimer();
             _stopStartMs = _demoStopMs;
@@ -452,6 +454,11 @@ class SessionView extends WatchUi.View {
             "firstGutEventS" => _firstGutFlagS,
             "demo" => demoMode
         };
+        summary["foodType"] = nutritionFood;
+        summary["portionG"] = nutritionPortion;
+        summary["drinkIntervalS"] = nutritionDrinkSec;
+        summary["fuelLog"] = _fuelLog;
+        summary["at"] = Time.now().value();
         addSensorSummary(summary);
         System.println("Session ended: " + summary);
 
@@ -540,7 +547,7 @@ class SessionView extends WatchUi.View {
             dc.drawText(cx, h * 0.26, Graphics.FONT_XTINY,
                 Sensors.hardFeed(_hr, _userMaxHr) ? "Ease off, then eat" : "FUEL NOW", center);
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 0.37, Graphics.FONT_XTINY, Plan.PORTION_G + " g, then press START", center);
+            dc.drawText(cx, h * 0.37, Graphics.FONT_XTINY, nutritionPortion + " g, then press START", center);
         } else {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, h * 0.24, Graphics.FONT_XTINY, _drinkDue ? "DRINK" : "NEXT FUEL", center);

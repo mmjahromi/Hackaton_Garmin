@@ -1,0 +1,6 @@
+# Build fingerprints
+
+Source/test fingerprint: 4b1b6ae51a6cee081ca9371ab7544853aec85c55b653cddab19f65d199113120
+
+467350c0669fc15fd402f6f26786a3270133066f7bcbc3013f5151636ae6d803  guttrain.prg
+b093556752db2b46ff010e9510a41b481e6b8671b750cc03fc1a222fbe272c65  guttrain-test.prg

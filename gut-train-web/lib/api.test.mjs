@@ -184,3 +184,22 @@ test('Redis days use one date-keyed hash and trim to newest 60', async () => {
     assert.ok(commands.includes('HDEL'));
   } finally { delete globalThis.__dayRedisFetch; }
 });
+
+
+test('nutrition logs preserve confirmed choices and filter invalid feed records', async () => {
+  const feed = { atS: 120, carbsG: 25, kind: 'gel' };
+  await sessions.POST(request({ ...session, foodType: 'gel', portionG: 25,
+    drinkIntervalS: 0, targetConfirmed: true,
+    fuelLog: [feed, { ...feed, secret: 'ignored' }, null, { ...feed, carbsG: -2 }] }));
+  const saved = (await store.listSessions())[0];
+  assert.deepEqual(saved.fuelLog, [feed, feed]);
+  assert.equal(saved.targetConfirmed, true);
+  assert.equal(saved.portionG, 25);
+  assert.equal(saved.drinkIntervalS, 0);
+  await sessions.POST(request({ ...session, foodType: 'unknown', targetConfirmed: 'true',
+    fuelLog: Array.from({ length: 50 }, () => feed) }));
+  const bounded = (await store.listSessions())[0];
+  assert.equal(bounded.fuelLog.length, 32);
+  assert.equal(bounded.foodType, null);
+  assert.equal(bounded.targetConfirmed, false);
+});
