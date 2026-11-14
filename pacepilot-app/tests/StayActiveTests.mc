@@ -93,7 +93,7 @@ function lateOrFailedPlanAnswerIsHarmless(logger as Logger) as Boolean {
     v.onPlan(200, {"available" => true});          // user already left the screen
     Test.assert(v.planScreen == null);
     v.planScreen = PlanOffer.waiting();
-    v.onPlan(-104, null);
+    v.onPlan(-104, null);                          // no answer: no demo retry either
     Test.assert(!v.planScreen[:ok]);
     v.select();                                    // START on a failure just closes it
     Test.assert(v.planScreen == null && v.planGoalSec == null && v.stage == -1);
@@ -107,4 +107,30 @@ function wrapSplitsAtWords(logger as Logger) as Boolean {
     Test.assert(two[0].equals("Restart with a shorter") && two[1].length() <= 24);
     var one = PlanOffer.wrap("Short", 24);
     return one[0].equals("Short") && one[1].equals("") && PlanOffer.wrap(null, 24)[0].equals("");
+}
+
+(:test)
+function demoPlanIsLabelledAndNeverReported(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    v.config = Config.defaults();
+    v.planScreen = {:ok => false, :text => "x", :detail => "y"};   // not the waiting screen: no network in tests
+    v.onPlan(200, {"available" => true, "demo" => true, "suggestion" =>
+        {"id" => "stay_active:demo:2026-11-14", "kind" => "workout", "activity" => "run_walk", "durationMin" => 15, "reason" => "r"}});
+    Test.assert(v.planScreen[:ok] && v.planScreen[:demo] && v.planScreen[:text].equals("Demo: 15 min run/walk"));
+    Presenter.render(new DrawingProbe(), v);
+    v.select();
+    Test.assert(v.planGoalSec == 900 && v.planDemo && v.planId == null);
+    v.shutdown();
+    return true;
+}
+
+(:test)
+function sharingOffAnswerDoesNotLoopInTests(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    v.config = Config.defaults();
+    v.planScreen = {:ok => false, :text => "x", :detail => "y"};
+    v.onPlan(200, {"available" => false});
+    Test.assert(!v.planScreen[:ok] && v.planScreen[:text].equals("Plan sharing is off"));
+    v.shutdown();
+    return true;
 }

@@ -44,6 +44,9 @@ class PacePilotView extends WatchUi.View {
     var planGoalSec = null;
     var planId = null;
     var planSync = new PlanSync();
+    var planDemo = false;      // the accepted plan came from the demo data
+    var linkTried = false;     // connect to the dashboard once per launch
+    var demoTried = false;
     var origin = 0;
     var virtualMs = 0;
     var lastReal = null;
@@ -82,6 +85,9 @@ class PacePilotView extends WatchUi.View {
             timer = new Timer.Timer();
             timer.start(method(:onTick), 1000, true);
         }
+        // Opening the app starts by reaching the dashboard. It never blocks:
+        // BACK or START dismisses it, and the app works the same offline.
+        if (!linkTried && ready() && stage == -1) { linkTried = true; requestPlan(); }
     }
     function onHide() as Void {
         avatarVisible = false;
@@ -201,7 +207,7 @@ class PacePilotView extends WatchUi.View {
             } else {
                 controller.dispatch(:RESET); controller.tick(mode == :DEMO ? virtualMs : System.getTimer()-origin);
                 controller = null; stage = -1; quick = false; share = false;
-                planGoalSec = null; planId = null;
+                planGoalSec = null; planId = null; planDemo = false;
             }
         } else {
             controller.dispatch(controller.lifecycle == :PAUSED ? :RESUME : :PAUSE);
@@ -305,18 +311,29 @@ class PacePilotView extends WatchUi.View {
     }
     function requestPlan() {
         planScreen = PlanOffer.waiting();
-        planSync.fetch(self);
+        demoTried = false;
+        planSync.fetch(self, false);
     }
     function onPlan(code, data) {
         // Ignore a late answer if the user already left the plan screen.
         if (planScreen == null) { return; }
-        planScreen = PlanOffer.parse(code, data);
+        var offer = PlanOffer.parse(code, data);
+        // Connected, but no plan is shared yet: offer the labelled demo plan
+        // so the flow can still be tried. Only when the dashboard answered.
+        if (!offer[:ok] && code == 200 && !demoTried && planScreen.hasKey(:waiting)) {
+            demoTried = true;
+            planSync.fetch(self, true);
+            return;
+        }
+        planScreen = offer;
         WatchUi.requestUpdate();
     }
     function acceptPlan() {
         if (planScreen[:ok]) {
             planGoalSec = planScreen[:goalSec];
-            planId = planScreen[:id];
+            planDemo = planScreen[:demo] == true;
+            // A demo plan is never reported back as a completed suggestion.
+            planId = planDemo ? null : planScreen[:id];
             stage = 8; quick = true;
         }
         planScreen = null;

@@ -64,20 +64,20 @@ module Presenter {
         }
         if (v.ready() && v.planScreen != null) {
             var offer = v.planScreen;
-            line(dc, 60, "Today's plan", tiny, grey);
+            line(dc, 60, offer.hasKey(:waiting) ? "Dashboard" : (offer[:ok] ? "Dashboard connected" : "Dashboard"), tiny, grey);
             line(dc, 92, offer[:text], small, offer[:ok] ? accent : white);
             var detail = PlanOffer.wrap(offer[:detail], 24);
             line(dc, 128, detail[0], tiny, grey);
             line(dc, 150, detail[1], tiny, grey);
-            line(dc, 187, offer[:ok] ? "START use it" : "BACK returns", tiny, white);
-            line(dc, 213, offer[:ok] ? "BACK keeps yours" : "Nothing changed", tiny, grey);
+            line(dc, 187, offer[:ok] ? "START use this plan" : "START continue", tiny, white);
+            line(dc, 213, offer[:ok] ? "BACK keeps yours" : "Works without it", tiny, grey);
             return;
         }
         if (v.ready() && v.stage == -1) {
             var goalSec = v.mode == :DEMO ? 180 : (v.planGoalSec != null ? v.planGoalSec : v.config[:goalSec]);
             line(dc, 62, "Today", small, grey);
             line(dc, 98, (goalSec / 60).toString() + " min run/walk", large, white);
-            line(dc, 134, v.planId != null ? "From your dashboard plan" : "Easy pace. Walks count.", tiny, accent);
+            line(dc, 134, v.planDemo ? "From the demo plan" : (v.planId != null ? "From your dashboard plan" : "Easy pace. Walks count."), tiny, accent);
             line(dc, 178, "START begin", small, white);
             line(dc, 210, "Hold UP for options", tiny, grey);
             return;

@@ -289,3 +289,11 @@ START selects in setup and menus and controls the timer in a workout. LIGHT is n
 Verified in the SDK 9.1.0 documentation for this revision: `Attention` documents vibration, backlight and a flashlight API (`FlashlightMode` with off, on and strobe). No flashlight cue is implemented: it was not needed for the core flow and has not been tried on hardware. Cues remain text plus the band colours (green in band, yellow near, slow pulse when attention is needed, gray when readings are missing) and the existing vibration with its cooldown. Low heart rate alone never asks for more effort.
 
 Tests for this revision: 60 pass in the fenix7pro simulator (home and two-press start, plan parsing and acceptance, avatar mapping, and all earlier coaching tests). Not verified: how the screens look, real buttons and haptics, and the plan request from a real watch.
+
+## Opening the app connects to the dashboard
+
+The launcher icon is `resources/drawables/launcher_icon.png`, a 40 x 40 copy of `IconPacePilot.png` in the repo root. On a real watch it appears in the app list; the simulator has no app list and opens the app directly.
+
+On opening, PacePilot makes one request to the dashboard and shows "Connecting...". If you have saved preferences with "Send plan to watch" on, it shows today's suggestion: START uses it, BACK keeps your own goal. If no plan is shared yet, it shows the labelled demo plan ("Demo: 15 min run/walk") so the flow can be tried; a demo plan is never reported back as a completed suggestion. If the dashboard cannot be reached it says so, and START continues to the home screen. The app works the same offline.
+
+The request carries only the app's name, so the dashboard can show "PacePilot checked in". No heart rate or workout data is sent unless sharing is switched on for a session. 62 simulator tests pass; the check-in was confirmed from the simulator against the live dashboard.

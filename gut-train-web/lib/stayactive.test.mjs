@@ -4,7 +4,7 @@ import { buildPlan, normalizeDecision, shiftDate } from './plan.js';
 import { estimateEnergy } from './energy.js';
 import { normalizeProfile } from './profile.js';
 import { normalizeMeal, mealsOn, normalizeBeat } from './meals.js';
-import { watchConfig } from './watchConfig.js';
+import { watchConfig, demoWatchConfig } from './watchConfig.js';
 import { demoProfile, demoSessions, demoMeals } from './demo.js';
 import { loadOverview, resolveToday } from './overview.js';
 
@@ -195,4 +195,13 @@ test('today follows the browser only within a day of the server', () => {
   assert.equal(resolveToday('2026-11-13', now), '2026-11-13');
   assert.equal(resolveToday('2026-11-01', now), '2026-11-14');
   assert.equal(resolveToday('nonsense', now), '2026-11-14');
+});
+
+test('the demo plan for the watch is always marked as a demo', () => {
+  const demoPlan = buildPlan({ profile: demoProfile(TODAY), sessions: demoSessions(TODAY), decisions: [], today: TODAY });
+  const config = demoWatchConfig(demoPlan, 7);
+  assert.deepEqual([config.available, config.demo, config.suggestion.durationMin, config.updatedAt], [true, true, 15, 7]);
+  assert.ok(config.suggestion.reason.length <= 60);
+  // The real route never marks a plan as demo, and never serves one without consent.
+  assert.equal(watchConfig(profile({ shareToWatch: true }), plan([session(-1)])).demo, undefined);
 });

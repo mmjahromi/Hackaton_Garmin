@@ -1,6 +1,6 @@
 # Build fingerprints
 
-Built 2026-11-14T20:24Z, Connect IQ SDK 9.1.0, device fenix7pro.
+Built 2026-11-14T20:34Z, Connect IQ SDK 9.1.0, device fenix7pro.
 
-9a6a92690da39e76dbb99d9c718cee18dad8e5a5452ff5ff278b7034b65b9f7c  guttrain.prg
-5869e3114fd9c61dcae09ccca79a991bc93ac176947c6e4760ae724f02720609  guttrain-test.prg
+e076e649fdea45999a89ac1d6fb51ad33d23b9e0405716ed4b0bfb8ab94b233c  guttrain.prg
+b79cc1c285bc01f64607e9c29fd7c4c713e734f36b750ac4d4a711af676cb335  guttrain-test.prg

@@ -92,3 +92,11 @@ function stressConsentAndDemoDoNotRead(logger as Logger) as Boolean {
     Test.assert(feed.reads==0 && feed.stressCheckedMs==null);
     return true;
 }
+
+(:test)
+function dashboardLinkTextIsPlain(logger as Logger) as Boolean {
+    return DashLinkText.status(null).equals("Dashboard: connecting") &&
+        DashLinkText.status(200).equals("Dashboard connected") &&
+        DashLinkText.status(-104).equals("Dashboard not connected") &&
+        DashLinkText.status(404).equals("Dashboard not connected");
+}

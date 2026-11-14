@@ -15,13 +15,16 @@ class ActiveHomeView extends WatchUi.View {
     private var _bannerTimer as Timer.Timer?;
     private var _bannerUntil as Number = 0;
     private var _demoSync as ActiveDemo;
+    private var _link as DashLink;
 
     function initialize() {
         View.initialize();
         _demoSync = new ActiveDemo();
+        _link = new DashLink();
     }
     function onShow() as Void {
         refresh();
+        _link.connect();
         if (!_synced) {
             _synced = true;
             if (ActiveData.ready(_record)) {
@@ -129,7 +132,8 @@ class ActiveHomeView extends WatchUi.View {
         line(dc, 0.57, shown(steps) + " steps  " + shown(floors) + " floors", Graphics.COLOR_LT_GRAY);
         line(dc, 0.69, recovery ? "Recovery day: lighter target" :
             "Week " + shown(active == null ? null : done + active) + " of " + weekly + " min", Graphics.COLOR_WHITE);
-        line(dc, 0.83, "START: gut session (" + Plan.target() + " g/h)", Graphics.COLOR_LT_GRAY);
+        line(dc, 0.81, "START: gut session (" + Plan.target() + " g/h)", Graphics.COLOR_LT_GRAY);
+        line(dc, 0.90, _link.text(), _link.code == 200 ? Graphics.COLOR_GREEN : Graphics.COLOR_LT_GRAY);
         if (demoMode && System.getTimer() < _bannerUntil) {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
             dc.fillRectangle(w*0.08, h*0.40, w*0.84, h*0.23);

@@ -63,3 +63,7 @@ Opening the task menu or the finish question during a session leaves the session
 The menu title says whether the workout is running or paused. 34 tests pass in the simulator. The menu behaviour itself needs button presses and has not been exercised by an automated test or on hardware.
 
 Not built in this revision: logging everyday meals on the watch (use the dashboard's "Food and energy today"), and an idle heartbeat from the background service (the dashboard has the `/api/heartbeat` endpoint ready for it).
+
+## Opening the app connects to the dashboard
+
+On opening, Gut Train makes one request to the dashboard carrying only the app's name, and the home screen's bottom line shows "Dashboard connected" or "Dashboard not connected". The dashboard then shows "Gut Train checked in". Nothing else is sent unless sharing is on for a session. 35 simulator tests pass; the check-in was confirmed from the simulator against the live dashboard.

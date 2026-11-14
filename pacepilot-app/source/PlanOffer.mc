@@ -9,14 +9,14 @@ module PlanOffer {
     const ACTIVITY = {"walk" => "walk", "run_walk" => "run/walk", "cycle" => "ride"};
 
     function waiting() {
-        return {:ok => false, :text => "Getting plan...", :detail => "Needs your phone nearby"};
+        return {:ok => false, :waiting => true, :text => "Connecting...", :detail => "Reaching your dashboard"};
     }
 
     // Turns the dashboard's answer into what the plan screen shows. Anything
     // unexpected becomes a plain "nothing changed" message, never a setting.
     function parse(code, data) {
         if (code != 200 || !(data instanceof Dictionary)) {
-            return {:ok => false, :text => "Could not reach dashboard", :detail => "Check phone connection"};
+            return {:ok => false, :text => "Dashboard not connected", :detail => "Check your phone is nearby and online"};
         }
         if (data["available"] != true) {
             return {:ok => false, :text => "Plan sharing is off", :detail => "Turn on Send plan to watch on the dashboard"};
@@ -37,8 +37,10 @@ module PlanOffer {
         var goal = minutes * 60;
         if (goal < 60) { goal = 60; }
         if (goal > 3600) { goal = 3600; }
-        return {:ok => true, :text => minutes.toString() + " min " + activity, :detail => reason,
-                :goalSec => goal, :id => s["id"]};
+        // A demo plan is simulated data: say so, and never report against it.
+        var demo = data["demo"] == true;
+        return {:ok => true, :demo => demo, :text => (demo ? "Demo: " : "") + minutes.toString() + " min " + activity,
+                :detail => reason, :goalSec => goal, :id => s["id"]};
     }
 
     // Splits a sentence over two short lines at a word boundary. Anything
@@ -59,10 +61,13 @@ module PlanOffer {
 class PlanSync {
     var view = null;
     function initialize() {}
-    function fetch(v) {
+    // app=pacepilot lets the dashboard show "PacePilot checked in just now".
+    // With demo true it asks for the labelled demo plan instead.
+    function fetch(v, demo) {
         view = v;
         try {
-            Communications.makeWebRequest("https://gut-train-web.vercel.app/api/watch-config", null,
+            Communications.makeWebRequest("https://gut-train-web.vercel.app/api/watch-config",
+                demo ? {"app" => "pacepilot", "mode" => "demo"} : {"app" => "pacepilot"},
                 {:method => Communications.HTTP_REQUEST_METHOD_GET,
                  :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON},
                 method(:onResult));

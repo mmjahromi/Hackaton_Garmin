@@ -1,6 +1,6 @@
 # Build fingerprints
 
-Built 2026-11-14T20:24Z, Connect IQ SDK 9.1.0, device fenix7pro.
+Built 2026-11-14T20:34Z, Connect IQ SDK 9.1.0, device fenix7pro.
 
-c71da96c8d05be17b62b0096f66d502d5b011b546141d5817242410ef6550740  pacepilot.prg
-48a3a7a937b6d3d6185b825a8b8d3bd488ee7b94ef16cb444cd83c26466645df  pacepilot-test.prg
+100134e929082654301b41c1b41dce844f40a7abd0d6bf293796c9aa4f95b704  pacepilot.prg
+ac796b8ca85a283e30a73011f037566ab6cceaf1d26b8b2545e7fc693ab72118  pacepilot-test.prg
