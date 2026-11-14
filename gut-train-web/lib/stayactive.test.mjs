@@ -222,3 +222,12 @@ test('workout intake from PacePilot is validated and totalled for today', async 
   const real = await loadOverview(store, { demo: false, today: TODAY, now: 1 });
   assert.deepEqual(real.workoutIntake, { fluidMl: 450, carbsG: 75 });
 });
+
+ test('rest choice can be replaced with an explicit activity goal', () => {
+  const current = plan([session(-1)]).suggestion;
+  const rest = normalizeDecision({ id: current.id, action: 'rest' }, current, TODAY).suggestion;
+  const decision = normalizeDecision({ id: rest.id, action: 'adjust', durationMin: 30, activity: 'walk' }, rest, TODAY);
+  const next = plan([session(-1)], { decisions: [decision] }).suggestion;
+  assert.deepEqual([next.kind, next.activity, next.durationMin, next.status], ['workout', 'walk', 30, 'adjusted']);
+  assert.throws(() => normalizeDecision({ id: next.id, action: 'adjust', durationMin: 30 }, {...next, status: 'done'}, TODAY));
+});

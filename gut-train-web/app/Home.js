@@ -143,7 +143,7 @@ export default function Home() {
   const now = data.now + tick;
   const needsSetup = !profile;
   const showForm = editing || needsSetup;
-  const open = !["done", "rest_chosen"].includes(suggestion.status);
+  const open = suggestion.status !== "done";
 
   return (
     <main className="sa" id="main">
@@ -274,7 +274,7 @@ export default function Home() {
               <button type="button" className="sa-secondary" disabled={busy} onClick={() => {
                 setChange({ durationMin: Math.max(10, suggestion.durationMin), activity: suggestion.activity ?? "walk", toDate: localDate(1) });
                 setAdjusting(true);
-              }}>Adjust or move</button>
+              }}>{suggestion.kind === "rest" ? "Choose a goal" : "Adjust or move"}</button>
               {suggestion.kind === "workout" && suggestion.durationMin > 10 && <button type="button" className="sa-secondary" disabled={busy} onClick={() => decide("easier")}>Make it easier</button>}
               {suggestion.kind === "workout" && <button type="button" className="sa-secondary" disabled={busy} onClick={() => decide("rest")}>Rest today</button>}
             </div>
@@ -292,7 +292,7 @@ export default function Home() {
                 </label>
                 <button type="button" className="primary" disabled={busy} onClick={async () => {
                   if (await decide("adjust", { durationMin: Number(change.durationMin), activity: change.activity })) setAdjusting(false);
-                }}>Use this</button>
+                }}>{suggestion.kind === "rest" ? "Use this goal" : "Use this"}</button>
               </div>
               <div className="sa-row">
                 <label>Or move it to
