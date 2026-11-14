@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 import Toybox.Timer;
 import Toybox.WatchUi;
@@ -13,7 +14,9 @@ class RaceForgeAdventureView extends WatchUi.View {
     var _running=false;
     var _lastNow=0;
     var _surface=null;
-    function initialize() { View.initialize(); flow=new RaceForgeAdventureController(); }
+    var layoutValid=true;
+    function initialize() { View.initialize(); flow=new RaceForgeAdventureController();
+        flow.restore(new RaceForgeJourneyRepository(new RaceForgeStoragePort())); }
     function onShow() as Void { _visible=true; _lastNow=System.getTimer(); syncTimer(); }
     function onHide() as Void { _visible=false; flow.suspend(); syncTimer(); _surface=null; }
     function shutdown() { _visible=false; flow.stop(); syncTimer(); _surface=null; }
@@ -27,19 +30,28 @@ class RaceForgeAdventureView extends WatchUi.View {
         var now=System.getTimer(); flow.step(now-_lastNow); _lastNow=now;
         syncTimer(); WatchUi.requestUpdate();
     }
-    function pressSelect() { flow.select(); changed(); }
+    function pressSelect() {
+        if(flow.screen==:OPTIONS && flow.option==2) {
+            var lab=new RaceForgeView(); WatchUi.pushView(lab,new RaceForgeDelegate(lab),WatchUi.SLIDE_UP);
+        } else { flow.select(); changed(); }
+    }
     function pressMove(delta) { flow.move(delta); changed(); }
     function pressBack() { flow.back(); changed(); }
     function changed() { syncTimer(); if(_visible) { WatchUi.requestUpdate(); } }
-    function menu() {
-        // Preserve the complete milestone-2 lab and all its regression controls.
-        if(flow.screen==:HOME) {
-            var lab=new RaceForgeView(); WatchUi.pushView(lab,new RaceForgeDelegate(lab),WatchUi.SLIDE_UP);
-        }
-    }
+    function menu() { flow.menu(); changed(); }
     function text(dc,y,message,color) {
+        var font=Graphics.FONT_XTINY; var height=dc.getFontHeight(font);
+        var dy=130-y; var bottom=y+height-130; if(bottom>dy) { dy=bottom; }
+        var square=125*125-dy*dy;
+        var maximum=square>0 ? (2*Math.sqrt(square)).toNumber() : 0;
+        var label=message;
+        var length=message.length();
+        while(dc.getTextWidthInPixels(label,font)>maximum && length>0) {
+            length-=1; label=message.substring(0,length)+"...";
+        }
+        if(dc.getTextWidthInPixels(label,font)>maximum) { layoutValid=false; }
         dc.setColor(color,Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth()/2,y,Graphics.FONT_XTINY,message,Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(dc.getWidth()/2,y,font,label,Graphics.TEXT_JUSTIFY_CENTER);
     }
     function button(dc,label) {
         dc.setColor(0x00AAAA,Graphics.COLOR_TRANSPARENT); dc.fillRoundedRectangle(60,214,140,22,7);
@@ -57,15 +69,57 @@ class RaceForgeAdventureView extends WatchUi.View {
         drawScreen(surface.getDc()); dc.drawBitmap(0,0,surface);
     }
     function drawScreen(dc) {
-        dc.setColor(Graphics.COLOR_BLACK,Graphics.COLOR_BLACK); dc.clear();
+        dc.setColor(Graphics.COLOR_BLACK,Graphics.COLOR_BLACK); dc.clear(); layoutValid=true;
         var screen=flow.screen; var journey=flow.journey;
         var items=journey.missions(); var mission=items[flow.selected];
-        text(dc,15,"DEMO",0xFFAA00);
-        if(screen==:HOME) {
-            text(dc,38,"Stay active · 7 days",Graphics.COLOR_WHITE);
+        text(dc,15,flow.mode==:DEMO ? "DEMO" : "LIVE",0xFFAA00);
+        if(screen==:SETUP) {
+            var step=flow.setupStep; var p=flow.setupProfile;
+            text(dc,46,"Your 7-day adventure",Graphics.COLOR_WHITE);
+            text(dc,75,["Fitness baseline","Available activity days","Preferred activity","Daily time available"][step],0x00AAAA);
+            var choice=step==0 ? ["Beginner","Intermediate","Experienced"][p["level"]] :
+                (step==1 ? p["days"].toString()+" days" :
+                (step==2 ? ["Walking","Running","Mixed"][p["activity"]] : ["Short","Medium","Long"][p["time"]]));
+            text(dc,113,choice,Graphics.COLOR_WHITE);
+            text(dc,148,"UP / DOWN · choose",Graphics.COLOR_LT_GRAY);
+            text(dc,177,flow.status.length()>0 ? flow.status : "Illustrative, gentle plan",0xFFAA00);
+            button(dc,step==3 ? "START · create week" : "START · next");
+        } else if(screen==:OPTIONS) {
+            text(dc,50,"RaceForge options",Graphics.COLOR_WHITE);
+            for(var o=0;o<3;o+=1) { text(dc,92+o*32,["Workout source","Personalize week","Avatar pose lab"][o],o==flow.option ? 0xFFAA00 : Graphics.COLOR_WHITE); }
+            button(dc,"START · choose");
+        } else if(screen==:SOURCE) {
+            text(dc,58,"Choose workout source",Graphics.COLOR_WHITE);
+            text(dc,98,flow.option==0 ? "DEMO · synthetic" : "LIVE · device sensors",0xFFAA00);
+            text(dc,133,flow.option==0 ? "Progress stays temporary" : "No synthetic fallback",Graphics.COLOR_WHITE);
+            text(dc,166,"UP / DOWN · change",Graphics.COLOR_LT_GRAY); button(dc,"START · confirm");
+        } else if(screen==:BAND) {
+            text(dc,59,"Manual effort band",Graphics.COLOR_WHITE);
+            text(dc,97,(110+flow.bandChoice*10).toString()+" - "+(130+flow.bandChoice*10).toString()+" bpm",0xFFAA00);
+            text(dc,130,"Illustrative, not personal",Graphics.COLOR_LT_GRAY);
+            text(dc,164,"UP / DOWN · choose",Graphics.COLOR_WHITE); button(dc,"START · confirm");
+        } else if(screen==:CHECKIN) {
+            var step=flow.checkStep; var choice=flow.checkChoice;
+            text(dc,57,["How did it feel?","How are you feeling?","Fueling as planned?"][step],Graphics.COLOR_WHITE);
+            text(dc,105,step==0 ? ["Easy","Moderate","Hard"][choice] :
+                (step==1 ? ["Fresh","Moderate","Very fatigued"][choice] : ["Completed","Not completed","Not applicable"][choice]),0xFFAA00);
+            text(dc,147,"Your report · stored locally",Graphics.COLOR_LT_GRAY);
+            text(dc,175,"UP / DOWN · choose",Graphics.COLOR_WHITE); button(dc,step==2 ? "START · save" : "START · next");
+        } else if(screen==:ADJUST) {
+            text(dc,48,"Adjust this mission",Graphics.COLOR_WHITE);
+            for(var a=0;a<5;a+=1) { text(dc,78+a*25,["Keep original","Mark missed","Shorten optional","Move to free day","Skip and resume"][a],a==flow.option ? 0xFFAA00 : Graphics.COLOR_WHITE); }
+            button(dc,"START · review");
+        } else if(screen==:ADJUST_CONFIRM) {
+            text(dc,55,"Proposed change",Graphics.COLOR_WHITE);
+            text(dc,91,flow.proposal["why"],0x00AAAA);
+            text(dc,125,"Past achievements stay",Graphics.COLOR_WHITE);
+            text(dc,157,flow.endYes && flow.proposal["allowed"] ? "CONFIRM change" : "KEEP original",0xFFAA00);
+            text(dc,185,"UP / DOWN · choose",Graphics.COLOR_LT_GRAY); button(dc,"START · confirm");
+        } else if(screen==:HOME) {
+            text(dc,38,journey.isComplete() ? (journey.completed()==items.size() ? "Week complete" : "Week reviewed") : "Stay active · 7 days",Graphics.COLOR_WHITE);
             _summit.draw(dc,journey);
-            text(dc,184,journey.completed().toString()+" / "+items.size().toString()+" checkpoints",0x00AAAA);
-            text(dc,202,items[journey.nextIndex()]["title"],Graphics.COLOR_WHITE);
+            text(dc,171,journey.completed().toString()+" / "+items.size().toString()+" checkpoints",0x00AAAA);
+            text(dc,193,flow.repository!=null && flow.repository.error.length()>0 ? flow.repository.error : items[journey.nextIndex()]["title"],Graphics.COLOR_WHITE);
             button(dc,"START · missions");
         } else if(screen==:LIST) {
             text(dc,48,"Your weekly trail",Graphics.COLOR_WHITE);
@@ -74,22 +128,27 @@ class RaceForgeAdventureView extends WatchUi.View {
                 if(row==0) { dc.setColor(0x005555,Graphics.COLOR_TRANSPARENT); dc.fillRoundedRectangle(35,y-2,190,30,6); }
                 text(dc,y,(index+1).toString()+". "+m["title"],m["status"].equals("complete") ? 0x00AAAA : Graphics.COLOR_WHITE);
             }
-            text(dc,193,"UP / DOWN · choose",Graphics.COLOR_LT_GRAY); button(dc,"START · preview");
+            text(dc,193,items[flow.selected]["status"]+" · UP/DOWN",Graphics.COLOR_LT_GRAY); button(dc,"START · preview");
         } else if(screen==:PREVIEW) {
             text(dc,56,mission["title"],Graphics.COLOR_WHITE);
-            text(dc,88,"Day "+mission["plannedDay"].toString()+" · "+timeText(mission["durationTargetSec"]),0x00AAAA);
+            var marker=mission["activityType"].equals("summit");
+            text(dc,88,marker ? "Weekly check-in" : "Day "+mission["plannedDay"].toString()+" · "+timeText(mission["durationTargetSec"]),0x00AAAA);
             text(dc,116,mission["effortTarget"],Graphics.COLOR_WHITE);
-            text(dc,143,"Manual band 120-140",Graphics.COLOR_LT_GRAY);
-            text(dc,171,"Demo: 180s at 4x",0xFFAA00);
-            text(dc,192,flow.status,Graphics.COLOR_WHITE); button(dc,"START · begin");
+            text(dc,143,marker ? "After your planned missions" : "Band "+mission["hrLow"].toString()+"-"+mission["hrHigh"].toString()+" (manual)",Graphics.COLOR_LT_GRAY);
+            text(dc,171,marker ? "Not an extra workout" : (flow.mode==:DEMO ? "Demo: 180s at 4x" : "UP/DOWN: change band"),0xFFAA00);
+            text(dc,192,flow.status.length()>0 ? flow.status : "State: "+mission["status"],Graphics.COLOR_WHITE);
+            button(dc,marker ? "START · celebrate" : "START · begin");
         } else if(screen==:WORKOUT || screen==:PAUSE) {
             var bridge=flow.session; bridge.refresh(); var model=bridge.avatar;
             text(dc,38,mission["title"],Graphics.COLOR_WHITE);
-            _athlete.draw(dc,model,70,57,120,120);
-            text(dc,178,model.dataText,0x00AAAA);
-            text(dc,198,model.headline,Graphics.COLOR_WHITE);
-            text(dc,219,timeText(bridge.controller.sessionSec)+" / "+timeText(bridge.controller.config[:goalSec]),Graphics.COLOR_WHITE);
-            text(dc,232,screen==:PAUSE ? "RESUME" : "PAUSE",Graphics.COLOR_LT_GRAY);
+            _athlete.draw(dc,model,80,61,100,100);
+            text(dc,165,model.dataText,0x00AAAA);
+            text(dc,187,model.headline,Graphics.COLOR_WHITE);
+            text(dc,209,timeText(bridge.controller.sessionSec)+"  ["+mission["hrLow"].toString()+"-"+mission["hrHigh"].toString()+"]",Graphics.COLOR_WHITE);
+            dc.setColor(0x005555,Graphics.COLOR_TRANSPARENT); dc.fillRectangle(70,230,120,2);
+            dc.setColor(0x00AAAA,Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(70,230,(120*bridge.controller.sessionSec/bridge.controller.config[:goalSec]).toNumber(),2);
+            text(dc,234,screen==:PAUSE ? "RESUME" : (bridge.controller.decision[:canResumeRun] ? "UP run" : "PAUSE"),Graphics.COLOR_LT_GRAY);
         } else if(screen==:END_CONFIRM) {
             text(dc,75,"End this mission?",Graphics.COLOR_WHITE);
             text(dc,108,"Earlier progress stays",0x00AAAA);
@@ -97,12 +156,14 @@ class RaceForgeAdventureView extends WatchUi.View {
             text(dc,175,"UP / DOWN · change",Graphics.COLOR_LT_GRAY); button(dc,"START · confirm");
         } else if(screen==:SUMMARY) {
             var s=flow.session.controller.summary;
-            text(dc,56,s[:goalMet] ? "Mission complete" : "Session ended",Graphics.COLOR_WHITE);
-            text(dc,85,"DEMO · not real exercise",0xFFAA00);
-            text(dc,117,"Elapsed "+timeText(s[:sessionSec]),Graphics.COLOR_WHITE);
-            text(dc,143,"Moving estimate "+timeText(s[:movingSec]),0x00AAAA);
-            text(dc,169,"Unknown "+timeText(s[:unknownMotionSec]),Graphics.COLOR_LT_GRAY);
-            button(dc,s[:goalMet] ? "START · checkpoint" : "START · return");
+            text(dc,45,s[:goalMet] ? "Mission complete" : "Session ended",Graphics.COLOR_WHITE);
+            flow.session.refresh();
+            _athlete.draw(dc,flow.session.avatar,100,65,60,60);
+            text(dc,130,"Elapsed "+timeText(s[:sessionSec]),Graphics.COLOR_WHITE);
+            text(dc,152,"Moving estimate "+timeText(s[:movingSec]),0x00AAAA);
+            text(dc,174,"Unknown "+timeText(s[:unknownMotionSec]),Graphics.COLOR_LT_GRAY);
+            text(dc,194,flow.mode==:DEMO ? "Demo · not real exercise" : "MENU: save, skip check-in",0xFFAA00);
+            button(dc,flow.status.length()>0 ? flow.status : "START · check-in");
         }
     }
 }

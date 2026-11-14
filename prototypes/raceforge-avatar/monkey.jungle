@@ -3,3 +3,4 @@ base.sourcePath = source
 base.resourcePath = resources
 # Import exact teammate-owned modules; never compile the PacePilot App or View.
 base.sourcePath = $(base.sourcePath);../../pacepilot-app/source/Contracts.mc;../../pacepilot-app/source/Config.mc;../../pacepilot-app/source/Features.mc;../../pacepilot-app/source/CoachEngine.mc;../../pacepilot-app/source/SessionController.mc;../../pacepilot-app/source/ReplayProvider.mc;../../pacepilot-app/source/LiveProvider.mc
+base.sourcePath = $(base.sourcePath);../../pacepilot-app/source/AlertService.mc

@@ -123,3 +123,14 @@ Send: `AvatarRenderer.mc`, `AvatarModel.mc`, `AvatarAdapter.mc` if created, any 
 - Never invent a Garmin API or report a build as passing without the simulator/terminal evidence.
 - When requiring integration changes, produce a patch or concrete handshake request rather than guessing teammates' latest code.
 - Explain precisely what was implemented, what is only simulated, and what needs merging.
+
+## Milestone 3 scope update
+
+The user's milestone-3 brief expands this prototype into a weekly fitness adventure.
+RaceForge owns AdventureController/View/Session bridge, WeeklyJourney, JourneyStorage
+and SummitRenderer. The five existing avatar components remain presentation-only.
+Import the shared PacePilot modules via explicit source paths; do not edit them or
+implement another coaching clock/engine. LIVE uses the shared provider and declared
+Sensor/Positioning permissions. Store only bounded, versioned string-key summaries,
+manual profile/check-ins and explicit achievements. DEMO must never update real
+exercise progress. See MILESTONE3.md for tested semantics and current limitations.

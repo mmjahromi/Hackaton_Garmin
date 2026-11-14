@@ -2,11 +2,12 @@ import Toybox.Graphics;
 import Toybox.Lang;
 
 class RaceForgeSummitRenderer {
-    var _mountain=[[43,178],[85,118],[108,128],[143,56],[215,178]];
-    var _snow=[[143,56],[125,94],[141,87],[154,100],[164,91]];
-    var _points=[[68,166],[155,146],[105,121],[169,102],[143,70]];
+    var _mountain=[[43,166],[85,125],[108,132],[143,80],[215,166]];
+    var _snow=[[143,80],[130,107],[142,100],[153,109],[162,107]];
+    var _points=[[68,155],[155,141],[105,130],[169,117],[143,96]];
     var _avatar=new RaceForgeAvatarRenderer();
     var _idle=new RaceForgeAvatarModel(:IDLE,"","HR --","DEMO");
+    var _done=new RaceForgeAvatarModel(:CELEBRATE,"","HR --","DEMO");
     function initialize() {}
     function point(index,count) { return _points[count==4 ? [0,1,3,4][index] : index]; }
     function draw(dc,journey) {
@@ -27,7 +28,7 @@ class RaceForgeSummitRenderer {
             if(items[j]["status"].equals("skipped")) { dc.drawLine(p[0]-3,p[1]-3,p[0]+3,p[1]+3); }
         }
         var position=journey.data["position"];
-        var at=position<0 ? [55,181] : point(position,count);
-        _avatar.draw(dc,_idle,at[0]-19,at[1]-41,38,38);
+        var at=position<0 ? [55,168] : point(position,count);
+        _avatar.draw(dc,journey.isComplete() ? _done : _idle,at[0]-19,at[1]-41,38,38);
     }
 }
