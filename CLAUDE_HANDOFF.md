@@ -1,3 +1,5 @@
+> **Historical handoff.** Current implementation, evidence, and gaps are maintained in [STATUS.md](STATUS.md). The revision notes below are preserved in order; earlier controls, counts, paths, and feature limits may have been superseded. In particular, menus now leave workouts running, the avatar is integrated, startup check-ins exist, plan fetch is implemented, and PacePilot review sharing is available. The earlier screenshot and design-ownership constraints remain recorded here.
+
 # Claude handoff: PacePilot + Gut Train
 
 ## User intent and constraints

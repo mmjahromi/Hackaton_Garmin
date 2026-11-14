@@ -1,69 +1,81 @@
 # Gut Train
 
-A Garmin Fenix 7 Pro watch app for following your chosen fueling routine and recording what you tolerated during activity. It runs separately from PacePilot; both can share summaries to the same dashboard.
+A Fenix 7 Pro app for following a chosen long-session fueling plan, logging food and drink, and reflecting on gut comfort. The home screen also retains local daily activity targets and nudges.
 
-## Nutrition flow
+[Current status](../STATUS.md) is the main reference for implemented features, evidence, and gaps. This README replaces the older direct-button logging and menu-pauses-workout instructions.
 
-1. From the activity home, START opens your fuel plan.
-2. UP/DOWN adjusts each choice; START confirms: target (30–90 g/h), food type (gel, chews, drink, food), carbohydrates per portion (5–60 g), drink cue interval (off, 10, 15, or 20 minutes), and optional public sharing. Use a plan appropriate to you; the app does not calculate physiological needs.
-3. During the session, START/STOP stops or resumes the timer. Hold UP/MENU (or press UP/DOWN) opens tasks and stops the workout. Choose Log food portion, Log drink (150 ml), Flag gut discomfort, Resume workout, or Finish workout. BACK asks for confirmation before finishing. Menu dismissal leaves the timer stopped; START resumes it. Food log details retain the first 32 entries; aggregate totals continue counting afterward.
-4. Sessions of at least ten minutes proceed to gut comfort (1–5), then a next target that you explicitly confirm. A good rating no longer automatically raises the target.
-5. The last 20 LIVE nutrition summaries are stored locally. When opted in, the summary also appears on the shared dashboard. There is no offline upload queue or later nutrition-history upload screen.
+## Fueling flow
 
-Daily activity stays local; background and demo-day uploads are disabled. DEMO sessions do not change stored goals or upload summaries. Sharing defaults off each session. Shared summaries are publicly readable on the hackathon dashboard.
+1. START from home opens the fuel plan. Choose **30–90 g/h** in 5 g/h steps; food category **gel, chews, drink, food**; portion **5–60 g**; drink cues **off, 10, 15, or 20 minutes**; and optional **Share live + summary**. Sharing defaults off. Confirm the plan to start.
+2. Feed timing uses the selected portion and target. Hold UP/MENU to log a food portion, 150 ml drink, or gut discomfort. HR, GPS/movement, stops, climb, cadence, and wrist temperature provide context. Temperature no longer changes drink timing; the chosen interval controls it.
+3. START pauses/resumes. Menus and the finish question keep the workout clock, sensors, recording, cues, and telemetry running. UP/DOWN alone do nothing during the workout. Finish requires confirmation.
+4. Sessions shorter than ten unpaused minutes skip rating and local nutrition summary storage and discard the FIT recording. Previously shared live telemetry is not removed; a completion packet is still attempted.
+5. Longer sessions ask for gut comfort (1–5) and an explicitly confirmed next-session target. This screen starts from the just-finished target; the earlier automatic progression helper remains in source/tests but is not used by this flow.
 
-Drink cues follow the interval you choose. Wrist temperature is recorded when available but no longer changes the drink schedule. The app does not diagnose dehydration, gut disease, fatigue, or recovery.
+Qualifying LIVE sessions retain up to 20 local nutrition summaries and the first 32 timed food events per session. No on-watch history browser or sharing retry screen is implemented. Gut Train attempts a cycling FIT activity with a carbs field; saving, discard, pause/resume, and Garmin Connect delivery need physical-watch verification. DEMO and short recordings are discarded.
 
-## VS Code and builds
+## Controls
 
-Install Garmin’s Monkey C extension and Connect IQ SDK 9.1.0 with the `fenix7pro` device profile. Open this folder in VS Code, run **Monkey C: Verify Installation**, and configure your private developer signing key. Do not commit the key. The neighboring `pacepilot-app/README.md` has detailed SDK/VS Code setup instructions.
+| Screen | START | UP / DOWN | Hold UP / MENU | BACK |
+| --- | --- | --- | --- | --- |
+| Home | Open fuel plan | DOWN toggles demo | Open PacePilot; Restart programme with confirmation | Exit |
+| Fuel plan | Confirm step; final step begins | Adjust value | — | Previous step; leave at first step |
+| Workout | Pause/resume | No action | Log food, drink, discomfort; Resume if paused; Finish; app-switch entry requires finishing | Finish question |
+| Gut rating | Confirm | Adjust 1–5 | — | Also confirms rating |
+| Next-session plan | Confirm target | Adjust target | — | No action; START confirms |
+| Summary / too short | Return home | No mapped action | — | Native navigation |
 
-On this Mac:
+The task menu labels the workout running or paused. Opening or dismissing it does not change that state. LIGHT stays native. Open PacePilot from the home menu after finishing; Garmin supplies its switch confirmation. Both apps must be installed. No unfinished session transfers between them.
+
+## Daily activity, connection, and sharing
+
+The home screen uses local steps, active minutes, floors, weekly progress, and morning Body Battery when available. Weekly target starts at 150 minutes, adapts within 60–300, and reduces today's share for a low morning Body Battery. Background checks run every 30 minutes and can request a still-time nudge. A 200-step increase within roughly that interval is an approximate response, not measured 15-minute adherence. See [activity implementation notes](docs/stay-active.md).
+
+Daily/background and demo-day uploads are disabled in `ActiveSync.post()`. The home DEMO banner and synthetic fallback values remain; toggling it does not publish a week to the dashboard.
+
+Opening the app makes one `/api/watch-config?app=guttrain` request and shows the connection result. This records an app-name-only dashboard check-in even with workout sharing off; it imports no nutrition plan and is not a periodic heartbeat.
+
+Enabled LIVE sharing sends workout telemetry and, after rating/target confirmation, a summary through the paired phone using Garmin Communications. It defaults off in every new setup. Watch DEMO workouts never upload or replace LIVE goals/history. There is no durable offline queue or user-triggered summary retry. The dashboard's nutrition storage appends summaries, so duplicate submissions are not deduplicated by session ID.
+
+The configured dashboard is a public shared demo with no private accounts. See [connection and privacy boundaries](../STATUS.md#connection-plan-transfer-and-privacy), including stress history, five-second snapshot attempts, stale states, and best-effort completion.
+
+## Build and run
+
+Use Connect IQ SDK **9.1.0**, `fenix7pro` (API profile 5.2, round 260 × 260), and Garmin's official Monkey C VS Code extension. Manifest minimum API is **5.2.0**. In VS Code open this app folder, run **Monkey C: Verify Installation**, set your private key path, and match compiler type-check level 0 / Off. Root launch configurations can also run either app.
+
+From the repository root:
+
+```sh
+./run-watch.sh gut-train-app
+./run-watch.sh gut-train-app test
+```
+
+The launcher restarts the simulator; finish other simulator work first. For build-only work from this directory:
 
 ```sh
 SDK="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
+export JAVA_TOOL_OPTIONS=-Djava.awt.headless=true
 mkdir -p bin
 "$SDK/bin/monkeyc" -d fenix7pro -f monkey.jungle -o bin/guttrain.prg -y "$HOME/.garmin/developer_key.der" -w -l 0
 "$SDK/bin/monkeyc" -d fenix7pro -f monkey.jungle -o bin/guttrain-test.prg -y "$HOME/.garmin/developer_key.der" -w -l 0 -t
-"$SDK/bin/connectiq"
+```
+
+To execute tests in an already-running simulator:
+
+```sh
 "$SDK/bin/monkeydo" bin/guttrain-test.prg fenix7pro -t
 ```
 
-Both builds compile. All 28 tests pass in the simulator for this revision; see `tests/debug-simulator-results.txt`. Native menu interaction and device sensor/haptic behavior still need acceptance testing. No physical-watch or visual validation has been performed for this revision. Sideload the production PRG into `GARMIN/APPS` using Garmin’s supported USB workflow and verify sensor permissions, buttons, cue timing, offline storage, and explicit sharing before presenting a hardware demo.
+Compilation does not execute tests. Inspect the runner's actual summary. `release/` contains production/test PRGs and hashes; building into `bin/` does not update those copies. Sideload the production PRG into `GARMIN/APPS` using the supported USB workflow, then perform hardware acceptance. Keep signing keys private and outside shared code.
 
-Dashboard instructions: `../gut-train-web/README.md`.
+## Source map and evidence
 
-## App switching and LIGHT
+| Responsibility | Source |
+| --- | --- |
+| Home, local targets, nudges, disabled day uploads | `ActiveHomeView.mc`, `HomeView.mc`, `Active.mc`, `ActiveData.mc`, `ActiveService.mc`, `ActiveSync.mc` |
+| Fuel plan, clock, sensors, task menu | `NutritionSetup.mc`, `SessionView.mc`, `WorkoutClock.mc`, `Sensors.mc`, `TaskMenu.mc` |
+| Rating, explicit target confirmation, summary sharing | `RatingView.mc`, `NutritionSetup.mc`, `SummaryView.mc`, `TooShortView.mc` |
+| Startup check-in and live sharing | `DashLink.mc`, `LiveFeed.mc`, `StressPolicy.mc` |
+| Earlier pure target rules | `Plan.mc` and its tests; automatic next-target helper is not used by current rating flow |
 
-Hold UP/MENU from the home screen to select Open PacePilot. During a workout, switching is blocked until it is finished; return home after the summary to switch. Both apps must be installed. Garmin supplies the switch confirmation; failure leaves the current app open. The LIGHT key keeps its native behavior. The new configurable HR band indicators belong to PacePilot; Gut Train retains its existing high-HR feeding advice.
-
-The redesigned visual UI is reserved for Claude. See `../CLAUDE_HANDOFF.md` for the remaining design and validation work.
-
-## Live workout feed (current revision)
-
-Enable **Share live + summary** during watch setup, then start a LIVE session with the paired phone connected to the Internet. This explicitly shares heart rate and workout metrics to the public demo. It defaults off. DEMO sessions remain local in the watch builds; API tests use labeled synthetic packets only against isolated/local storage.
-
-Each watch uploads at most one normal snapshot every 5 seconds, with immediate status-change attempts and a single request in flight. The dashboard live panel polls every 2 seconds. This is near-live HTTP telemetry via Garmin Communications, not a guaranteed low-latency socket. Slow Bluetooth/phone/network connections can delay updates. No raw GPS coordinates are uploaded.
-
-PacePilot sends filtered HR when ready, elapsed time, goal, estimated moving time, speed, and active/paused/completed state. Gut Train sends HR, elapsed time, distance, speed, logged carbs/fluids, and state. Paused/completed packets carry no current HR. The dashboard shows the last120 snapshots (about 10 min at the nominal rate); gaps are not interpolated. After 20 sec without a fresh sample it marks the stream stale and stops presenting old HR as current. End delivery is best effort: if connectivity is lost while ending, the dashboard becomes stale rather than inventing completion.
-
-The API keeps the newest session per app/mode for up to 24 h, with atomic Redis ordering checks to ignore duplicate, delayed, or post-completion packets. This is a shared hackathon feed, not multi-user private tracking. Existing summaries remain separate. The new watch binaries must be installed; deploying the website does not update the watch.
-
-## Stay-active revision: menus no longer pause the workout
-
-Opening the task menu or the finish question during a session leaves the session running: the clock, sensor sampling, activity recording, feed and drink cues and the live feed all continue underneath. Only START/STOP pauses and resumes.
-
-| Screen | START | UP / DOWN | Hold UP (MENU) | BACK |
-| --- | --- | --- | --- | --- |
-| Home | Open fuel plan | DOWN toggles demo mode | Open PacePilot, Restart programme | Exit |
-| Fuel plan | Confirm step | Adjust value | | Previous |
-| Session | Pause / resume timer | Nothing (so a stray press changes nothing) | Log food portion, Log drink, Flag gut discomfort, Resume (when paused), Finish, Open PacePilot (blocked until finished) | Finish? |
-| Rating / next plan | Confirm | Adjust | | Confirm |
-
-The menu title says whether the workout is running or paused. 34 tests pass in the simulator. The menu behaviour itself needs button presses and has not been exercised by an automated test or on hardware.
-
-Not built in this revision: logging everyday meals on the watch (use the dashboard's "Food and energy today"), and an idle heartbeat from the background service (the dashboard has the `/api/heartbeat` endpoint ready for it).
-
-## Opening the app connects to the dashboard
-
-On opening, Gut Train makes one request to the dashboard carrying only the app's name, and the home screen's bottom line shows "Dashboard connected" or "Dashboard not connected". The dashboard then shows "Gut Train checked in". Nothing else is sent unless sharing is on for a session. 35 simulator tests pass; the check-in was confirmed from the simulator against the live dashboard.
+Latest recorded evidence is **35 simulator tests** and a simulator startup check-in reaching the dashboard. Saved debug logs are older (28 passes). The suites were not rerun for this documentation update. Native menus/buttons, screens, real sensors, haptics, FIT lifecycle, and physical-phone delivery remain unverified. Everyday meal logging exists on the dashboard only. See [STATUS.md](../STATUS.md#remaining-gaps-and-acceptance) for the full gap list.

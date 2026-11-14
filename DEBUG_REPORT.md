@@ -1,3 +1,5 @@
+> **Historical debugging report.** These results apply to the debugging revision, not the latest implementation. See [STATUS.md](STATUS.md#verification-evidence) for the current evidence register and [remaining gaps](STATUS.md#remaining-gaps-and-acceptance). This file preserves the observed fixes and checks from that revision.
+
 # Functional debugging report
 
 Date: 14 November 2026.

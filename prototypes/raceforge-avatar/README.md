@@ -5,6 +5,8 @@ API 5.2), extending the existing animated athlete without replacing its artwork.
 Choose a baseline and a gentle weekly plan, follow its mountain checkpoints, and
 confirm completed missions. Walking and recovery are planned activities.
 
+Merged into `dashboard-and-recovery` on 14 November 2026. See [current project status](../../STATUS.md). The original avatar presentation components are already embedded in PacePilot; this standalone adventure remains independently runnable. Its weekly journey is now also integrated into PacePilot through `source/Weekly.mc`, using PacePilot's existing workout/feedback and sharing. The trail itself is local in each app.
+
 The prototype lives separately from PacePilot. It imports the team's actual
 controller, providers, pipeline and coaching engine by source-file path; it does
 not implement another coaching engine, session clock, web app or upload service.
@@ -91,6 +93,10 @@ lab. Its existing controls and all nine tests are preserved.
   missed training. Setup cannot overwrite a week that already has achievements
   or confirmed changes.
 
+## Post-merge verification
+
+On 14 November 2026, merge commit `8e6c7c1` on `dashboard-and-recovery` was checked with fresh SDK 9.1.0 production/test builds and the simulator suite: **21 passed, 0 failed, 0 errors**. PacePilot's production/test builds also succeeded. The merge leaves the main apps' source unchanged and imports their existing shared modules. See [STATUS.md](../../STATUS.md#raceforge-weekly-adventure-merge). No new screenshots or physical-watch checks were performed.
+
 ## Verification and handoff
 
 SDK 9.1.0 normal/test builds pass on `fenix7pro_sim`. The final simulator suite
@@ -112,7 +118,8 @@ are simulator inputs, not physical measurements. No watch-to-dashboard transport
 is implemented or claimed. The weekly challenge is the only implemented journey;
 race-specific journeys, respiration diagnostics and mountain styles are future work.
 
-Embedding into PacePilot still needs UI-owner agreement on widget bounds, source,
-clock/lifecycle ownership and completion events. In the existing app, use its
+PacePilot now embeds the pure journey/storage model and summit renderer with its
+own mission UI and result adapter. This standalone flow still owns its own app.
+Further visual integration needs agreement on widget bounds and presentation. In the existing app, use its
 already-running controller; do not instantiate a second one beside it. The eight
 imported shared files are unchanged, and PacePilot's own build scope is unchanged.

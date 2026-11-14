@@ -2,7 +2,11 @@
 
 ## Prepare
 
-Build with SDK 9.1.0 and load `bin/pacepilot.prg` into the Fenix 7 Pro simulator. Choose DEMO standard using UP/DOWN on the first setup screen. Advance through the explicitly labeled example HR band and goal. Final START begins the 45-real-second replay.
+Use the [current controls](README.md#controls) and [status/evidence register](../STATUS.md). Build with SDK 9.1.0 and load PacePilot into the Fenix 7 Pro simulator (from the repository root: `./run-watch.sh pacepilot-app`).
+
+Opening the app shows its icon and START to open. Press START to activate it and try the dashboard plan request; nothing is sent before that press. Dismiss the startup offer with BACK to reach home. Hold UP/MENU → **Change settings**, then use UP/DOWN to select **Replay standard** on the mode screen. Advance through the illustrative HR band, goal, check-ins, goal choice, and sharing; leave sharing off. Final START starts the replay. The home screen's short two-press start uses the already selected mode; it is not the mode selector.
+
+The workout avatar is integrated. Menus and finish questions leave the workout running; START alone pauses/resumes. A labeled demo plan received from the dashboard is separate from DEMO workout mode—choose Replay standard explicitly for synthetic sensor data.
 
 The mode banner reads DEMO 4x. The demo goal is three virtual minutes. The example HR band is 120–140, recovery threshold 135. Four sequential virtual ticks run each real second.
 
@@ -15,6 +19,12 @@ The mode banner reads DEMO 4x. The demo goal is three virtual minutes. The examp
 | 180 | Goal met |
 
 Choose Replay HR loss for the separate loss demonstration. HR disappears at seconds 115–129. The app shows HR unavailable, suppresses running readiness, and requires fresh acquisition. The same underlying engine handles both modes.
+
+## Showing the shared dashboard
+
+Open its **Today** tab and select its labeled demo to show preferences, suggestions, consistency, and meals. The watch replay does not upload; do not promise that its synthetic workout appears in Workouts. The latest commit records a separate simulator LIVE-sharing demonstration. To repeat it, explicitly choose LIVE, enable sharing on the short review with UP/DOWN, and keep the phone/simulator network path online. Only use data you intend to put on the public demo.
+
+Simulator execution and earlier standalone avatar recordings do not verify integrated screen readability or physical Garmin sensors. No new screenshots were taken for this documentation update.
 
 ## Three-minute pitch
 

@@ -1,0 +1,335 @@
+------------------------------------------------------------------------------
+Executing test avatarAnimationFrames...
+DEBUG (15:50): Four timed frames, delayed callback, breath/sweat, starting crouch and final hold
+PASS
+------------------------------------------------------------------------------
+Executing test avatarBridgeLifecycleAndAdvice...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarBridgeEffortAndAuthority...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarBridgeSourceModeAndStill...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarBridgeRenderProbe...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarRedrawIsolation...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarNativeCircularText...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarWorkoutAndCoachAuthority...
+DEBUG (15:50): 160 easy vs tempo, configurable demo ranges, sustained expression, authoritative advice/resume
+PASS
+------------------------------------------------------------------------------
+Executing test avatarUnavailableAndLifecycle...
+DEBUG (15:50): Null/not-ready/stale/error HR neutral; COMPLETE > PAUSED > missing; configurable source keys
+PASS
+------------------------------------------------------------------------------
+Executing test avatarSpeedAndPlayback...
+PASS
+------------------------------------------------------------------------------
+Executing test avatarRenderingBudget...
+DEBUG (15:51): 600 worst-expression renders: 21732ms; retained memory before=121672 after=121672 bytes (buffer included)
+PASS
+------------------------------------------------------------------------------
+Executing test weeklyEntryUsesExistingPacePilot...
+PASS
+------------------------------------------------------------------------------
+Executing test missionCompletionIsConfirmedAndRestores...
+PASS
+------------------------------------------------------------------------------
+Executing test missionPartialAndDemoNeverAwardLiveProgress...
+PASS
+------------------------------------------------------------------------------
+Executing test missionSaveFailureRollsBackAndRetries...
+PASS
+------------------------------------------------------------------------------
+Executing test missionsKeepPacePilotRecoveryAndFueling...
+PASS
+------------------------------------------------------------------------------
+Executing test missionAdjustmentsAndSummitAreExplicit...
+PASS
+------------------------------------------------------------------------------
+Executing test weeklyNavigationDropsAbandonedDashboardPlan...
+PASS
+------------------------------------------------------------------------------
+Executing test completedMissionUsesExistingFeedback...
+PASS
+------------------------------------------------------------------------------
+Executing test weeklyScreensRenderOnNativeContext...
+PASS
+------------------------------------------------------------------------------
+Executing test missionCancellationKeepsNormalStart...
+PASS
+------------------------------------------------------------------------------
+Executing test walkAndMobilityMissionsNeverOfferRunning...
+PASS
+------------------------------------------------------------------------------
+Executing test unfinishedSetupCannotStartOrAdjustMission...
+PASS
+------------------------------------------------------------------------------
+Executing test T01_thresholds...
+PASS
+------------------------------------------------------------------------------
+Executing test T01_rawReplay...
+DEBUG (15:51): Replay t=36 symbol (468)
+DEBUG (15:51): Replay t=81 symbol (469)
+DEBUG (15:51): Replay t=141 symbol (482)
+DEBUG (15:51): Replay t=160 symbol (438)
+PASS
+------------------------------------------------------------------------------
+Executing test T02_noise...
+PASS
+------------------------------------------------------------------------------
+Executing test T03_recovery...
+PASS
+------------------------------------------------------------------------------
+Executing test T03_stillRevokes...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_hrLossEveryState...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_freshnessAndReacquisition...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_cachedSamplesNotDuplicated...
+PASS
+------------------------------------------------------------------------------
+Executing test T05_pauseAndGap...
+PASS
+------------------------------------------------------------------------------
+Executing test T06_eventsAndMode...
+PASS
+------------------------------------------------------------------------------
+Executing test T06_manualWalkRestartsMinimum...
+PASS
+------------------------------------------------------------------------------
+Executing test T07_goalAndUnknownMovement...
+PASS
+------------------------------------------------------------------------------
+Executing test T08_totalLossControls...
+PASS
+------------------------------------------------------------------------------
+Executing test T09_motionFallback...
+PASS
+------------------------------------------------------------------------------
+Executing test T09_accelerometerReduction...
+PASS
+------------------------------------------------------------------------------
+Executing test T10_pressureTrend...
+PASS
+------------------------------------------------------------------------------
+Executing test T10_terrainNeverChangesEffortTiming...
+PASS
+------------------------------------------------------------------------------
+Executing test T11_storageAndAlertGate...
+PASS
+------------------------------------------------------------------------------
+Executing test T11_demoDoesNotWrite...
+PASS
+------------------------------------------------------------------------------
+Executing test configBounds...
+PASS
+------------------------------------------------------------------------------
+Executing test T05_resumeRejectsCachedReading...
+PASS
+------------------------------------------------------------------------------
+Executing test T06_restartAndDuplicateEvents...
+PASS
+------------------------------------------------------------------------------
+Executing test T10_deadbandAndLoss...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_boundsAndFutureReadings...
+PASS
+------------------------------------------------------------------------------
+Executing test T08_screenAndControls...
+PASS
+------------------------------------------------------------------------------
+Executing test T08_renderReplayStates...
+PASS
+------------------------------------------------------------------------------
+Executing test T11_storageRoundTrip...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_lossReplay...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_sourceErrorStatus...
+PASS
+------------------------------------------------------------------------------
+Executing test recoveryChoicesAreExplicit...
+PASS
+------------------------------------------------------------------------------
+Executing test sharingDefaultsToLocal...
+PASS
+------------------------------------------------------------------------------
+Executing test hrBandFeedbackBoundaries...
+PASS
+------------------------------------------------------------------------------
+Executing test lowBandCueDwell...
+PASS
+------------------------------------------------------------------------------
+Executing test liveFeedRespectsConsentAndRate...
+PASS
+------------------------------------------------------------------------------
+Executing test liveFeedKeepsLatestPendingState...
+PASS
+------------------------------------------------------------------------------
+Executing test resumeDoesNotPublishCachedReadings...
+PASS
+------------------------------------------------------------------------------
+Executing test homeStartsInTwoPresses...
+PASS
+------------------------------------------------------------------------------
+Executing test backFromReviewReturnsHome...
+PASS
+------------------------------------------------------------------------------
+Executing test planOfferParsesAGoodAnswer...
+PASS
+------------------------------------------------------------------------------
+Executing test planOfferRefusesAnythingElse...
+PASS
+------------------------------------------------------------------------------
+Executing test planChangesNothingUntilAccepted...
+PASS
+------------------------------------------------------------------------------
+Executing test lateOrFailedPlanAnswerIsHarmless...
+PASS
+------------------------------------------------------------------------------
+Executing test wrapSplitsAtWords...
+PASS
+------------------------------------------------------------------------------
+Executing test demoPlanIsLabelledAndNeverReported...
+PASS
+------------------------------------------------------------------------------
+Executing test sharingOffAnswerDoesNotLoopInTests...
+PASS
+------------------------------------------------------------------------------
+Executing test reviewScreenTogglesSharing...
+PASS
+------------------------------------------------------------------------------
+Executing test appOpensOnActivateScreen...
+PASS
+------------------------------------------------------------------------------
+Executing test backOnActivateScreenExits...
+PASS
+------------------------------------------------------------------------------
+Executing test drinkCueRules...
+PASS
+------------------------------------------------------------------------------
+Executing test loggingFoodAndDrinkKeepsTheWorkoutRunning...
+PASS
+------------------------------------------------------------------------------
+Executing test drinkReminderSettingCycles...
+PASS
+------------------------------------------------------------------------------
+Executing test stressValidity...
+PASS
+------------------------------------------------------------------------------
+Executing test stressBands...
+PASS
+------------------------------------------------------------------------------
+Executing test stressRefreshBoundary...
+PASS
+------------------------------------------------------------------------------
+Executing test stressCacheRetainsRealTimestamp...
+PASS
+------------------------------------------------------------------------------
+Executing test stressInactiveAndClockCorrection...
+PASS
+------------------------------------------------------------------------------
+Executing test stressConsentAndDemoDoNotRead...
+PASS
+
+==============================================================================
+RESULTS
+Test:                                       Status:
+avatarAnimationFrames                       PASS
+avatarBridgeLifecycleAndAdvice              PASS
+avatarBridgeEffortAndAuthority              PASS
+avatarBridgeSourceModeAndStill              PASS
+avatarBridgeRenderProbe                     PASS
+avatarRedrawIsolation                       PASS
+avatarNativeCircularText                    PASS
+avatarWorkoutAndCoachAuthority              PASS
+avatarUnavailableAndLifecycle               PASS
+avatarSpeedAndPlayback                      PASS
+avatarRenderingBudget                       PASS
+weeklyEntryUsesExistingPacePilot            PASS
+missionCompletionIsConfirmedAndRestores     PASS
+missionPartialAndDemoNeverAwardLiveProgress PASS
+missionSaveFailureRollsBackAndRetries       PASS
+missionsKeepPacePilotRecoveryAndFueling     PASS
+missionAdjustmentsAndSummitAreExplicit      PASS
+weeklyNavigationDropsAbandonedDashboardPlan PASS
+completedMissionUsesExistingFeedback        PASS
+weeklyScreensRenderOnNativeContext          PASS
+missionCancellationKeepsNormalStart         PASS
+walkAndMobilityMissionsNeverOfferRunning    PASS
+unfinishedSetupCannotStartOrAdjustMission   PASS
+T01_thresholds                              PASS
+T01_rawReplay                               PASS
+T02_noise                                   PASS
+T03_recovery                                PASS
+T03_stillRevokes                            PASS
+T04_hrLossEveryState                        PASS
+T04_freshnessAndReacquisition               PASS
+T04_cachedSamplesNotDuplicated              PASS
+T05_pauseAndGap                             PASS
+T06_eventsAndMode                           PASS
+T06_manualWalkRestartsMinimum               PASS
+T07_goalAndUnknownMovement                  PASS
+T08_totalLossControls                       PASS
+T09_motionFallback                          PASS
+T09_accelerometerReduction                  PASS
+T10_pressureTrend                           PASS
+T10_terrainNeverChangesEffortTiming         PASS
+T11_storageAndAlertGate                     PASS
+T11_demoDoesNotWrite                        PASS
+configBounds                                PASS
+T05_resumeRejectsCachedReading              PASS
+T06_restartAndDuplicateEvents               PASS
+T10_deadbandAndLoss                         PASS
+T04_boundsAndFutureReadings                 PASS
+T08_screenAndControls                       PASS
+T08_renderReplayStates                      PASS
+T11_storageRoundTrip                        PASS
+T04_lossReplay                              PASS
+T04_sourceErrorStatus                       PASS
+recoveryChoicesAreExplicit                  PASS
+sharingDefaultsToLocal                      PASS
+hrBandFeedbackBoundaries                    PASS
+lowBandCueDwell                             PASS
+liveFeedRespectsConsentAndRate              PASS
+liveFeedKeepsLatestPendingState             PASS
+resumeDoesNotPublishCachedReadings          PASS
+homeStartsInTwoPresses                      PASS
+backFromReviewReturnsHome                   PASS
+planOfferParsesAGoodAnswer                  PASS
+planOfferRefusesAnythingElse                PASS
+planChangesNothingUntilAccepted             PASS
+lateOrFailedPlanAnswerIsHarmless            PASS
+wrapSplitsAtWords                           PASS
+demoPlanIsLabelledAndNeverReported          PASS
+sharingOffAnswerDoesNotLoopInTests          PASS
+reviewScreenTogglesSharing                  PASS
+appOpensOnActivateScreen                    PASS
+backOnActivateScreenExits                   PASS
+drinkCueRules                               PASS
+loggingFoodAndDrinkKeepsTheWorkoutRunning   PASS
+drinkReminderSettingCycles                  PASS
+stressValidity                              PASS
+stressBands                                 PASS
+stressRefreshBoundary                       PASS
+stressCacheRetainsRealTimestamp             PASS
+stressInactiveAndClockCorrection            PASS
+stressConsentAndDemoDoNotRead               PASS
+Ran 80 tests
+
+PASSED (passed=80, failed=0, errors=0)

@@ -1,6 +1,7 @@
 # Build fingerprints
 
-Built 2026-11-14T21:17Z, Connect IQ SDK 9.1.0, device fenix7pro.
+Built 2026-11-14, Connect IQ SDK 9.1.0, device fenix7pro.
+Weekly adventure integrated; 80/80 simulator tests pass.
 
-caa464701e2193e72e50399dc96d7f85a3a98303826fadb79c2d6485f3c547be  pacepilot.prg
-9d3b2fe78f3655a7594305cef6b41367ea0c03eeb3fe82198cf95eb5d2002caf  pacepilot-test.prg
+3374c4d4943bdab70d993893f9e567b2da226d8182e40e1f47c9e7fbf73e3b73  pacepilot.prg
+5df16a72c7c9d1914717718d6dd020fd22f38ff9c6bd419d055ebd412861e28a  pacepilot-test.prg

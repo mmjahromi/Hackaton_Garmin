@@ -84,6 +84,10 @@ class PacePilotView extends WatchUi.View {
     var lowGate = new LowBandGate();
     var historyIndex = -1;
     var lastSummary;
+    var weekly=null;
+    var missionSession=false;
+    var missionTitle="";
+    var missionKind="";
     function initialize() {
         View.initialize();
         storage = new SummaryStore();
@@ -128,8 +132,10 @@ class PacePilotView extends WatchUi.View {
         if (controller != null) { controller.stop(); }
     }
     function ready() { return controller == null || controller.lifecycle == :READY; }
+    function missionAllowsRunning() { return !missionSession || missionKind.equals("easy") || missionKind.equals("aerobic"); }
     function startSession() {
         if (!Config.valid(config)) { return; }
+        missionSession=weekly!=null && weekly.pending!=null;
         liveFeed = new LiveFeed();
         sync = new DashboardSync();
         configSaved = storage.saveConfig(config);
@@ -159,7 +165,7 @@ class PacePilotView extends WatchUi.View {
                 else {
                     for (var i = 0; i < 4 && controller.lifecycle == :ACTIVE; i++) {
                         virtualMs += 1000;
-                        if (virtualMs == 160000) { controller.dispatch(:ACCEPT_RUN); }
+                        if (virtualMs == 160000 && missionAllowsRunning()) { controller.dispatch(:ACCEPT_RUN); }
                         controller.tick(virtualMs);
                         signal(realNow);
                     }
@@ -199,13 +205,18 @@ class PacePilotView extends WatchUi.View {
         if (lowGate.update(band,now)) { alerts.emit(lowCueId,:LOW,now); lowCueId--; }
         if (controller.lifecycle == :ACTIVE && controller.features[:hrReady]) {
             var a = controller.decision[:advice];
-            if (a == :EASE_OFF || a == :WALK || a == :READY_TO_RUN) {
+            if (a == :EASE_OFF || a == :WALK || (a == :READY_TO_RUN && missionAllowsRunning())) {
                 alerts.emit(controller.decision[:decisionId], a, now);
             }
         }
     }
     function select() {
         if (!activated) { activate(); return; }
+        if (ready() && stage==9) {
+            var mission=weekly.select();
+            if(mission!=null) { missionTitle=mission["title"]; missionKind=mission["activityType"]; planScreen=null; planId=null; planDemo=false; planGoalSec=mission["durationTargetSec"]; stage=8; quick=true; }
+            WatchUi.requestUpdate(); return;
+        }
         if (historyIndex >= 0) { historyIndex = -1; syncAvatarTimer(); WatchUi.requestUpdate(); return; }
         if (endConfirm) {
             if (endYes) {
@@ -244,13 +255,15 @@ class PacePilotView extends WatchUi.View {
                     config[:goalSec] = next;
                     configSaved = storage.saveConfig(config);
                 }
+                if(weekly!=null) { weekly.finish(controller.summary,mode); }
                 sync.send(controller.summary, share);
                 lastSummary = storage.load();
                 feedbackStage = 3;
             } else {
+                if(weekly!=null && weekly.pending!=null && !weekly.finish(controller.summary,mode)) { WatchUi.requestUpdate(); return; }
                 controller.dispatch(:RESET); controller.tick(mode == :DEMO ? virtualMs : System.getTimer()-origin);
                 controller = null; stage = -1; quick = false; share = false;
-                planGoalSec = null; planId = null; planDemo = false;
+                planGoalSec = null; planId = null; planDemo = false; missionSession=false;
             }
         } else {
             controller.dispatch(controller.lifecycle == :PAUSED ? :RESUME : :PAUSE);
@@ -261,6 +274,7 @@ class PacePilotView extends WatchUi.View {
     }
     function adjust(direction) {
         if (!activated) { return; }
+        if (ready() && stage==9) { weekly.move(direction); WatchUi.requestUpdate(); return; }
         if (historyIndex >= 0) {
             var records = storage.history();
             if (records.size() > 0) { historyIndex = (historyIndex + direction + records.size()) % records.size(); }
@@ -307,8 +321,10 @@ class PacePilotView extends WatchUi.View {
     }
     function menu() {
         if (!activated) { return; }
+        if(ready() && stage==9) { weekly.menu(); WatchUi.requestUpdate(); return; }
         var m=new WatchUi.Menu2({:title=>"PacePilot tasks"});
         if (ready()) {
+            m.addItem(new WatchUi.MenuItem("Weekly adventure", "Missions and saved progress", :missions, {}));
             m.addItem(new WatchUi.MenuItem("Get today's plan", "From your dashboard", :plan, {}));
             m.addItem(new WatchUi.MenuItem("Change settings", "Goal, HR band, sharing", :setup, {}));
             m.addItem(new WatchUi.MenuItem("Drink reminders", Fuel.modeLabel(drinkMode), :drinkmode, {}));
@@ -325,7 +341,7 @@ class PacePilotView extends WatchUi.View {
             m.addItem(new WatchUi.MenuItem("Log food", Fuel.PORTION_G + " g carbs", :food, {}));
             m.addItem(new WatchUi.MenuItem("Workout metrics", null, :metrics, {}));
             m.addItem(new WatchUi.MenuItem("Walk now", null, :walk, {}));
-            if (controller.decision[:advice] == :READY_TO_RUN) {
+            if (controller.decision[:advice] == :READY_TO_RUN && missionAllowsRunning()) {
                 m.addItem(new WatchUi.MenuItem("Accept running", "Offered now", :run, {}));
             }
             m.addItem(new WatchUi.MenuItem("Finish workout", "Confirm before ending", :finish, {}));
@@ -335,8 +351,12 @@ class PacePilotView extends WatchUi.View {
         WatchUi.pushView(m,new TaskMenuDelegate(self),WatchUi.SLIDE_IMMEDIATE);
     }
     function task(id) {
-        if (id == :setup) { stage=0; quick=false; historyIndex=-1; planScreen=null; }
-        if (id == :plan && ready()) { requestPlan(); }
+        if(id==:missions && ready()) {
+            if(weekly==null) { weekly=new PaceWeekly(new RaceForgeStoragePort()); }
+            weekly.cancel(); weekly.open(mode); planGoalSec=null; planId=null; planDemo=false; stage=9; planScreen=null; historyIndex=-1;
+        }
+        if (id == :setup) { if(weekly!=null) { weekly.cancel(); } planGoalSec=null; planId=null; planDemo=false; stage=0; quick=false; historyIndex=-1; planScreen=null; }
+        if (id == :plan && ready()) { if(weekly!=null) { weekly.cancel(); } planGoalSec=null; planId=null; planDemo=false; requestPlan(); }
         if (id == :history) { historyIndex=0; }
         if (id == :drinkmode) { drinkMode = (drinkMode + 1) % 5; }
         if (id == :drink && controller != null && controller.lifecycle != :COMPLETE) {
@@ -345,7 +365,7 @@ class PacePilotView extends WatchUi.View {
         if (id == :food && controller != null && controller.lifecycle != :COMPLETE) { carbsG += Fuel.PORTION_G; }
         if (id == :metrics) { metricsPage=!metricsPage; }
         if (id == :walk && controller.lifecycle == :ACTIVE) { controller.dispatch(:WALK_NOW); }
-        if (id == :run && controller.lifecycle == :ACTIVE) { controller.dispatch(:ACCEPT_RUN); }
+        if (id == :run && controller.lifecycle == :ACTIVE && missionAllowsRunning()) { controller.dispatch(:ACCEPT_RUN); }
         if (id == :finish || id == :blocked) { endConfirm=true; endYes=false; }
         if (id == :share) { sync.send(controller.summary,share); }
         if (id == :switch && (ready() || (controller.lifecycle == :COMPLETE && feedbackStage == 3))) { AppSwitch.openGut(); }
@@ -353,6 +373,10 @@ class PacePilotView extends WatchUi.View {
     }
     function back() {
         if (!activated) { shutdown(); return false; }
+        if(ready() && stage==9) { if(!weekly.back()) { stage=-1; } WatchUi.requestUpdate(); return true; }
+        if(ready() && stage==8 && quick && weekly!=null && weekly.pending!=null) {
+            weekly.cancel(); planGoalSec=null; stage=9; weekly.screen=:PREVIEW; WatchUi.requestUpdate(); return true;
+        }
         if (historyIndex >= 0) { historyIndex = -1; syncAvatarTimer(); WatchUi.requestUpdate(); return true; }
         if (endConfirm) { endConfirm = false; }
         else if (ready()) {
@@ -417,6 +441,14 @@ class PacePilotView extends WatchUi.View {
     function prepareAvatar(now) {
         var c = controller;
         var next = avatarBridge.model(c.features, c.decision, c.lifecycle, c.config, 0);
+        if(missionSession && !missionAllowsRunning()) {
+            next.canResumeRun=false;
+            if(c.lifecycle==:ACTIVE && next.visualState!=:SENSOR_UNAVAILABLE) { next.motion=missionKind.equals("mobility") ? :IDLE : :WALK; }
+            if(c.lifecycle==:ACTIVE && next.visualState!=:SENSOR_UNAVAILABLE &&
+                (next.advice==:RUN_EASY || next.advice==:READY_TO_RUN)) {
+                next.headline=missionKind.equals("mobility") ? "Gentle mobility" : "Walk comfortably";
+            }
+        }
         if (avatarModel == null || next.visualState != avatarModel.visualState ||
             next.decisionId != avatarModel.decisionId || next.motion != avatarModel.motion) {
             avatarElapsed = 0;
