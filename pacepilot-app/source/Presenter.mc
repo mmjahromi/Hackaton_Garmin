@@ -1,3 +1,4 @@
+import Toybox.System;
 import Toybox.Graphics;
 import Toybox.Math;
 
@@ -135,16 +136,19 @@ module Presenter {
             line(dc, 135, "Est. moving " + timeText(c.movingSec), tiny, white);
             line(dc, 162, f[:movement] == :UNKNOWN ? "Motion unknown" : (f[:movement] == :STILL ? "Stopped? Pause to rest" : "Movement estimated"), tiny, grey);
             line(dc, 190, f[:speedMps] == null ? "Speed -- m/s" : "Speed " + f[:speedMps].format("%.1f") + " m/s", tiny, white);
-            line(dc, 214, "Hold UP returns", tiny, grey);
+            line(dc, 214, "UP / DOWN returns", tiny, grey);
             return;
         }
+        var band=HrFeedback.state(f[:hrBpm],f[:hrReady],c.config[:hrLowBpm],c.config[:hrHighBpm]);
+        accent=HrFeedback.color(band,Toybox.System.getTimer());
         var action = "Run easy";
         var reason = "Keep it comfortable";
         if (c.decision[:advice] == :EASE_OFF) { action = "Ease off"; reason = f[:terrain] == :UP ? "Climb likely" : "HR above chosen band"; }
         if (c.decision[:advice] == :WALK) { action = "Walk break"; reason = "Take it comfortably"; }
-        if (c.decision[:advice] == :READY_TO_RUN) { action = "Try running?"; reason = "UP accepts / your choice"; }
+        if (c.decision[:advice] == :READY_TO_RUN) { action = "Try running?"; reason = "MENU offers run option"; }
         if (!f[:hrReady]) { action = "HR unavailable"; reason = "Walk if needed"; }
         if (f[:movement] == :STILL) { reason = "Stopped? Pause to rest"; }
+        if (c.decision[:advice] == :RUN_EASY) { reason=HrFeedback.message(band); }
         line(dc, 61, action, large, white);
         line(dc, 90, reason, tiny, accent);
         line(dc, 123, "HR " + shown(f[:hrBpm]) + " bpm", small, white);

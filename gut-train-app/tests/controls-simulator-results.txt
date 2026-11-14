@@ -1,0 +1,132 @@
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeIncreaseAndRounding...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeDecreaseAndBoundary...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeCapsAndFloors...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeDailyCeilingAndRemainingDays...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeDailyFloorAndRecoveryOrder...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeRecoveryThreshold...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test activeCivilWeekBoundaries...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test nutritionPlanIsUserBounded...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test nutritionSetupChoices...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test workoutClockExcludesStops...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test raisesTargetWhenPlanHitAndGutGood...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test countsWithinTenPercentAsHittingThePlan...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test holdsTargetWhenUnderAteEvenIfGutGood...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test holdsTargetWhenGutOnlyOk...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test lowersTargetWhenGutRough...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test neverGoesAboveMaximum...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test neverGoesBelowMinimum...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test feedIntervalMeetsTheTarget...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test rateIsCarbsPerHour...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test veryShortSessionsHaveNoRate...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test stopNeedsSpeedAndMotion...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test stopUsesRealTime...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test heatShortensDrinkInterval...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test hardFeedNeedsKnownHrAboveThreshold...
+PASS
+Gut Train started, target=40 g/h
+------------------------------------------------------------------------------
+Executing test contractBoundsPreserveSignedTemperature...
+PASS
+
+==============================================================================
+RESULTS
+Test:                                   Status:
+activeIncreaseAndRounding               PASS
+activeDecreaseAndBoundary               PASS
+activeCapsAndFloors                     PASS
+activeDailyCeilingAndRemainingDays      PASS
+activeDailyFloorAndRecoveryOrder        PASS
+activeRecoveryThreshold                 PASS
+activeCivilWeekBoundaries               PASS
+nutritionPlanIsUserBounded              PASS
+nutritionSetupChoices                   PASS
+workoutClockExcludesStops               PASS
+raisesTargetWhenPlanHitAndGutGood       PASS
+countsWithinTenPercentAsHittingThePlan  PASS
+holdsTargetWhenUnderAteEvenIfGutGood    PASS
+holdsTargetWhenGutOnlyOk                PASS
+lowersTargetWhenGutRough                PASS
+neverGoesAboveMaximum                   PASS
+neverGoesBelowMinimum                   PASS
+feedIntervalMeetsTheTarget              PASS
+rateIsCarbsPerHour                      PASS
+veryShortSessionsHaveNoRate             PASS
+stopNeedsSpeedAndMotion                 PASS
+stopUsesRealTime                        PASS
+heatShortensDrinkInterval               PASS
+hardFeedNeedsKnownHrAboveThreshold      PASS
+contractBoundsPreserveSignedTemperature PASS
+Ran 25 tests
+
+PASSED (passed=25, failed=0, errors=0)

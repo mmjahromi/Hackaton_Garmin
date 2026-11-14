@@ -16,9 +16,9 @@ import Toybox.WatchUi;
 // The long training session. It times the next feed so the athlete hits
 // today's carbs-per-hour target, and logs each feed with one button press.
 //
-//   START  = I just ate one portion
-//   UP     = I just drank a sip
-//   DOWN   = my gut is complaining (flags the moment)
+//   START  = stop/resume the workout timer
+//   UP / DOWN / hold MENU = task menu (stops workout)
+//   Food, drinks and discomfort are explicit menu tasks
 //   BACK   = end the session and save it
 class SessionView extends WatchUi.View {
 
@@ -31,6 +31,9 @@ class SessionView extends WatchUi.View {
     private var _startMs as Number = 0;
     private var _started as Boolean = false;
     private var _finished as Boolean = false;
+    var paused as Boolean = false;
+    private var _pauseAt as Number = 0;
+    private var _pausedMs as Number = 0;
 
     private var _carbs as Number = 0;
     private var _fuelLog as Array = [];
@@ -87,7 +90,7 @@ class SessionView extends WatchUi.View {
             if (demoMode && _userMaxHr == 0) { _userMaxHr = 185; }
             startRecording();
         }
-        startSensors();
+        if (!paused) { startSensors(); }
         var timer = new Timer.Timer();
         timer.start(method(:tick), 500, true);
         _timer = timer;
@@ -127,7 +130,7 @@ class SessionView extends WatchUi.View {
 
     // Session seconds. In demo mode the clock runs much faster than real time.
     function elapsedS() as Number {
-        return ((System.getTimer() - _startMs) * _speed) / 1000;
+        return WorkoutClock.seconds(System.getTimer(),_startMs,_pausedMs,_pauseAt,paused,_speed);
     }
 
     // Seconds between feeds so that one portion each time meets the target.
@@ -150,7 +153,7 @@ class SessionView extends WatchUi.View {
     }
 
     function tick() as Void {
-        if (_finished) {
+        if (_finished || paused) {
             return;
         }
         sampleSensors();
@@ -379,11 +382,33 @@ class SessionView extends WatchUi.View {
         return 0;
     }
 
+    function togglePause() as Void {
+        if (_finished) { return; }
+        if (!paused) {
+            _pauseAt=System.getTimer(); paused=true;
+            closeStop(_pauseAt); stopSensors();
+            if (_recording != null) { _recording.stop(); }
+        } else {
+            _pausedMs+=System.getTimer()-_pauseAt; paused=false;
+            _previousMagnitude=null;
+            startSensors();
+            if (_recording != null) { _recording.start(); }
+        }
+        WatchUi.requestUpdate();
+    }
+    function tasks() as Void {
+        if (!paused) { togglePause(); }
+        GutTasks.open(self);
+    }
+    function confirmFinish() as Void {
+        if (!paused) { togglePause(); }
+        WatchUi.pushView(new WatchUi.Confirmation("Finish workout?"),new GutFinishDelegate(self),WatchUi.SLIDE_IMMEDIATE);
+    }
     function finish() as Void {
         if (_finished) {
             return;
         }
-        sampleSensors();
+        if (!paused) { sampleSensors(); }
         closeStop(System.getTimer());
         stopSensors();
         _finished = true;
@@ -412,7 +437,7 @@ class SessionView extends WatchUi.View {
             if (field != null) {
                 field.setData(_carbs);
             }
-            recording.stop();
+            if (!paused) { recording.stop(); }
             // Demo sessions are fake, so keep them out of the activity history.
             if (demoMode || tooShort) {
                 recording.discard();
@@ -504,6 +529,13 @@ class SessionView extends WatchUi.View {
     }
 
     function onUpdate(dc as Dc) as Void {
+        if (paused) {
+            dc.setColor(Graphics.COLOR_WHITE,Graphics.COLOR_BLACK); dc.clear();
+            dc.drawText(130,85,Graphics.FONT_MEDIUM,"Stopped",Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(130,125,Graphics.FONT_SMALL,clock(elapsedS()),Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(130,168,Graphics.FONT_XTINY,"START resumes / MENU tasks",Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cx = w / 2;
@@ -547,7 +579,7 @@ class SessionView extends WatchUi.View {
             dc.drawText(cx, h * 0.26, Graphics.FONT_XTINY,
                 Sensors.hardFeed(_hr, _userMaxHr) ? "Ease off, then eat" : "FUEL NOW", center);
             dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 0.37, Graphics.FONT_XTINY, nutritionPortion + " g, then press START", center);
+            dc.drawText(cx, h * 0.37, Graphics.FONT_XTINY, nutritionPortion + " g / MENU to log", center);
         } else {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, h * 0.24, Graphics.FONT_XTINY, _drinkDue ? "DRINK" : "NEXT FUEL", center);
@@ -558,7 +590,7 @@ class SessionView extends WatchUi.View {
         // Split the stop message over two short lines inside the round bezel.
         if (_stopCounted) {
             dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 0.47, Graphics.FONT_XTINY, "Stopped. DOWN", center);
+            dc.drawText(cx, h * 0.47, Graphics.FONT_XTINY, "Stopped? MENU for tasks", center);
             dc.drawText(cx, h * 0.55, Graphics.FONT_XTINY, "if it's your gut.", center);
         }
 
@@ -613,22 +645,24 @@ class SessionDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        _view.logFeed();
+        _view.togglePause();
         return true;
     }
 
     function onPreviousPage() as Boolean {
-        _view.logDrink();
+        _view.tasks();
         return true;
     }
 
     function onNextPage() as Boolean {
-        _view.logGutFlag();
+        _view.tasks();
         return true;
     }
 
+    function onMenu() as Boolean { _view.tasks(); return true; }
+
     function onBack() as Boolean {
-        _view.finish();
+        _view.confirmFinish();
         return true;
     }
 }

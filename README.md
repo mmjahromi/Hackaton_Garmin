@@ -26,7 +26,13 @@ Both apps default to keeping session summaries on the watch. Sharing is an expli
 
 - Dashboard: **44 automated tests pass**, production build passes, and local HTTP checks return 200 for the page and both session endpoints.
 - Both watch production and test builds compile.
-- Revised watch suites contain 31 PacePilot and 24 Gut Train tests. Runtime execution is **not verified** for this revision because the host simulator failed to launch. Earlier passing test logs apply to the older baseline.
+- Current watch suites pass in the simulator: **33 PacePilot tests and 25 Gut Train tests**. Hardware acceptance remains outstanding.
 - No physical-watch or visual acceptance has been performed. No screenshots were taken.
 
 Ready-to-sideload builds are in each watch app’s `release/` directory. Keep signing keys and credentials outside git. Before a device demo, verify the new setup/feedback screens, sensor input, offline storage, and opt-in sync on the actual watch.
+
+## Controls and next work
+
+Workout START/STOP controls the timer; hold MENU/UP opens task choices. Native menus still use START to select. LIGHT keeps Garmin’s standard behavior. PacePilot adds text-backed HR band colors and slow pulsing outside the band. App switching uses Garmin intents and requires finishing a workout first. Dashboard polling updates shared completed summaries; there is no during-workout telemetry stream.
+
+See [Claude handoff](CLAUDE_HANDOFF.md) for the requested visual redesign, exact remaining validation, and implementation boundaries.

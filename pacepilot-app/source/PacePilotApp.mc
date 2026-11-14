@@ -40,6 +40,8 @@ class PacePilotView extends WatchUi.View {
     var nextChoice = 0;
     var routine = 0;
     var sync;
+    var lowCueId = -2;
+    var lowGate = new LowBandGate();
     var historyIndex = -1;
     var lastSummary;
     function initialize() {
@@ -73,7 +75,7 @@ class PacePilotView extends WatchUi.View {
         controller = new SessionController(c, provider, storage, mode);
         controller.sessionId = Time.now().value();
         origin = System.getTimer(); lastReal = origin; virtualMs = 0;
-        alerts = new AlertService(); summaryPage = 0; feedbackStage = 0; effort = 1; routine = 0;
+        lowGate = new LowBandGate(); alerts = new AlertService(); summaryPage = 0; feedbackStage = 0; effort = 1; routine = 0;
         controller.dispatch(:START); controller.tick(0);
     }
     function onTick() as Void {
@@ -101,6 +103,8 @@ class PacePilotView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
     function signal(now) {
+        var band=controller.lifecycle == :ACTIVE ? HrFeedback.state(controller.features[:hrBpm],controller.features[:hrReady],controller.config[:hrLowBpm],controller.config[:hrHighBpm]) : :UNKNOWN;
+        if (lowGate.update(band,now)) { alerts.emit(lowCueId,:LOW,now); lowCueId--; }
         if (controller.lifecycle == :ACTIVE && controller.features[:hrReady]) {
             var a = controller.decision[:advice];
             if (a == :EASE_OFF || a == :WALK || a == :READY_TO_RUN) {
@@ -189,20 +193,41 @@ class PacePilotView extends WatchUi.View {
             else { summaryPage = 1 - summaryPage; }
         }
         else if (controller.lifecycle == :ACTIVE) {
-            controller.dispatch(direction > 0 ? :WALK_NOW : :ACCEPT_RUN);
+            metricsPage = !metricsPage;
         }
         WatchUi.requestUpdate();
     }
     function menu() {
+        var m=new WatchUi.Menu2({:title=>"PacePilot tasks"});
         if (ready()) {
-            historyIndex = historyIndex >= 0 ? -1 : 0;
-            WatchUi.requestUpdate();
-        } else if (controller.lifecycle == :COMPLETE && feedbackStage == 3) {
-            sync.send(controller.summary, share);
-        } else if (controller.lifecycle == :ACTIVE) {
-            metricsPage = !metricsPage;
-            WatchUi.requestUpdate();
+            m.addItem(new WatchUi.MenuItem("Session setup", null, :setup, {}));
+            m.addItem(new WatchUi.MenuItem("Local history", null, :history, {}));
+            m.addItem(new WatchUi.MenuItem("Open Gut Train", "Exits PacePilot", :switch, {}));
+        } else if (controller.lifecycle == :COMPLETE) {
+            m.addItem(new WatchUi.MenuItem("Return to feedback", null, :close, {}));
+            if (feedbackStage == 3) {
+                m.addItem(new WatchUi.MenuItem("Retry sharing", null, :share, {}));
+                m.addItem(new WatchUi.MenuItem("Open Gut Train", "Exits PacePilot", :switch, {}));
+            }
+        } else {
+            m.addItem(new WatchUi.MenuItem("Workout metrics", null, :metrics, {}));
+            m.addItem(new WatchUi.MenuItem("Walk now", null, :walk, {}));
+            m.addItem(new WatchUi.MenuItem("Accept running", "Only when offered", :run, {}));
+            m.addItem(new WatchUi.MenuItem("Finish workout", "Confirm before ending", :finish, {}));
+            m.addItem(new WatchUi.MenuItem("Open Gut Train", "Finish workout first", :blocked, {}));
         }
+        WatchUi.pushView(m,new TaskMenuDelegate(self),WatchUi.SLIDE_IMMEDIATE);
+    }
+    function task(id) {
+        if (id == :setup) { stage=0; historyIndex=-1; }
+        if (id == :history) { historyIndex=0; }
+        if (id == :metrics) { metricsPage=!metricsPage; }
+        if (id == :walk && controller.lifecycle == :ACTIVE) { controller.dispatch(:WALK_NOW); }
+        if (id == :run && controller.lifecycle == :ACTIVE) { controller.dispatch(:ACCEPT_RUN); }
+        if (id == :finish || id == :blocked) { endConfirm=true; endYes=false; }
+        if (id == :share) { sync.send(controller.summary,share); }
+        if (id == :switch && (ready() || (controller.lifecycle == :COMPLETE && feedbackStage == 3))) { AppSwitch.openGut(); }
+        WatchUi.requestUpdate();
     }
     function back() {
         if (historyIndex >= 0) { historyIndex = -1; WatchUi.requestUpdate(); return true; }

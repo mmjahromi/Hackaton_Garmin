@@ -23,8 +23,7 @@ class HomeDelegate extends WatchUi.BehaviorDelegate {
 
     // Holding UP (the menu gesture) offers to restart the programme.
     function onMenu() as Boolean {
-        WatchUi.pushView(new WatchUi.Confirmation("Restart programme?"),
-            new ResetDelegate(), WatchUi.SLIDE_IMMEDIATE);
+        GutTasks.open(null);
         return true;
     }
 

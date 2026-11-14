@@ -2,7 +2,7 @@
 
 ## Nutrition/recovery revision — 14 November 2026
 
-Production and test builds compile with SDK 9.1.0. The suite now contains 31 tests, including recovery choices, default-off sharing, and the expanded setup/feedback flow. These revised tests have **not executed successfully in this session**: the macOS simulator launcher returned `kLSNoExecutableErr`, direct launch exited 134, and monkeydo waited without results. The earlier 29-test log below applies only to the earlier implementation. Hardware and visual acceptance remain unverified.
+Production and test builds compile with SDK 9.1.0. The suite now contains 33 tests, including recovery choices, default-off sharing, and the expanded setup/feedback flow. The simulator was initially unavailable (`kLSNoExecutableErr`, direct launch exit134, monkeydo timeout), but a later retry succeeded: **33/33 current tests pass**. See `tests/controls-simulator-results.txt`. The earlier29-test log below applies only to the earlier implementation. Hardware and visual acceptance remain unverified.
 
 ## Earlier baseline evidence
 
@@ -58,3 +58,7 @@ Live sources demonstrated on hardware: **zero verified so far**. Synthetic repla
 8. Record device model, firmware, commit, actual observations, and pass/fail.
 
 Software unit gates pass. Physical acceptance remains incomplete until T12 is observed.
+
+## Button/feedback revision
+
+Both watch production and test builds compile. Added HR-band boundary/pulse tests, sustained-low cue reset/dwell tests, and Gut Train paused-clock tests (33 PacePilot, 25 Gut Train in total). After an initial timeout, simulator retries passed all **33 PacePilot and 25 Gut Train tests**. The new native menu, app-switch confirmation, backlight behavior, and sensor/haptic behavior require device acceptance. No screenshots were captured. The previous baseline table is historical evidence only.

@@ -21,3 +21,12 @@ function nutritionSetupChoices(logger as Logger) as Boolean {
     v.stage = 4; v.change(1); Test.assert(v.sharing);
     return true;
 }
+(:test)
+function workoutClockExcludesStops(logger as Logger) as Boolean {
+    Test.assert(WorkoutClock.seconds(11000,1000,0,0,false,1)==10);
+    Test.assert(WorkoutClock.seconds(25000,1000,0,11000,true,1)==10);
+    Test.assert(WorkoutClock.seconds(30000,1000,14000,11000,false,1)==15);
+    Test.assert(WorkoutClock.seconds(25000,1000,0,11000,true,4)==40);
+    Test.assert(WorkoutClock.seconds(0,1000,0,0,false,1)==0);
+    return true;
+}

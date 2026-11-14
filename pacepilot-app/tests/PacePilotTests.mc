@@ -467,3 +467,30 @@ function sharingDefaultsToLocal(logger as Logger) as Boolean {
     Test.assert(v.sync.status.equals("Kept on watch"));
     return true;
 }
+
+(:test)
+function hrBandFeedbackBoundaries(logger as Logger) as Boolean {
+    Test.assert(HrFeedback.state(null,false,120,140)==:UNKNOWN);
+    Test.assert(HrFeedback.state(130,false,120,140)==:UNKNOWN);
+    Test.assert(HrFeedback.state(120,true,120,140)==:IN_BAND);
+    Test.assert(HrFeedback.state(140,true,120,140)==:IN_BAND);
+    Test.assert(HrFeedback.state(145,true,120,140)==:NEAR);
+    Test.assert(HrFeedback.state(115,true,120,140)==:NEAR);
+    Test.assert(HrFeedback.state(146,true,120,140)==:HIGH);
+    Test.assert(HrFeedback.state(114,true,120,140)==:LOW);
+    Test.assert(HrFeedback.color(:HIGH,0)!=HrFeedback.color(:HIGH,1000));
+    Test.assert(HrFeedback.color(:IN_BAND,0)==HrFeedback.color(:IN_BAND,1000));
+    return true;
+}
+(:test)
+function lowBandCueDwell(logger as Logger) as Boolean {
+    var g=new LowBandGate();
+    Test.assert(!g.update(:LOW,0));
+    Test.assert(!g.update(:LOW,14999));
+    Test.assert(g.update(:LOW,15000));
+    Test.assert(!g.update(:LOW,30000));
+    Test.assert(!g.update(:UNKNOWN,31000));
+    Test.assert(!g.update(:LOW,32000));
+    Test.assert(g.update(:LOW,47000));
+    return true;
+}

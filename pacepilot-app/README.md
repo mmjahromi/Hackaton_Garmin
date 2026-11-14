@@ -173,12 +173,12 @@ For sideloading, use Garmin's supported USB transfer workflow to copy `bin/pacep
 | Screen | Controls |
 | --- | --- |
 | Setup | UP/DOWN adjusts mode, HR band, goal, energy, soreness, today’s goal choice, and optional sharing. START advances. BACK returns to the previous setting. The final START confirms and starts. |
-| Active | START pauses. DOWN requests a walk break. UP accepts running only when readiness is offered. BACK opens end confirmation with Cancel selected. |
+| Active | START pauses. UP/DOWN switches the metrics page. Hold UP opens tasks: Walk now, Accept running (only when offered), Finish workout. BACK opens end confirmation with Cancel selected. |
 | End confirmation | UP/DOWN chooses Cancel or End. START confirms. BACK cancels. Coaching continues until confirmed. |
 | Paused | START resumes with fresh HR acquisition. BACK opens end confirmation. |
-| Complete | Confirm effort, next goal, and a routine with START; UP/DOWN changes choices. Then UP/DOWN switches summary pages and START returns. Hold UP retries a consented upload. |
-| History | Hold UP from setup to browse the latest 20 local sessions; UP/DOWN browses and START returns. |
-| Extra metrics | Hold UP during an active session to toggle speed and estimated moving time. This optional page is unnecessary for any core control. |
+| Complete | Confirm effort, next goal, and a routine with START; UP/DOWN changes choices. Then UP/DOWN switches summary pages and START returns. The task menu offers Retry sharing. |
+| History | Hold UP from setup and choose Local history; UP/DOWN browses and START returns. |
+| Extra metrics | UP/DOWN during an active session toggles speed and estimated moving time. This optional page is unnecessary for any core control. |
 
 Mode choices are LIVE, standard DEMO 4x, and HR-loss DEMO 4x. All demo screens are explicitly marked. Demo uses a 180-second virtual goal and four sequential one-second updates per real timer tick. The standard fixture automatically sends the explicit ACCEPT_RUN event at virtual second 160 to complete its scripted demonstration.
 
@@ -216,6 +216,16 @@ See TEST_RESULTS.md for observed evidence and DEMO.md for the pitch.
 
 Before a session, report energy and soreness. Low energy or high soreness preselects a shorter option; you review and confirm it. Afterward, choose Easy, About right, Too hard, or Skip rating; then confirm Repeat goal, Five minutes shorter (minimum one minute), or Choose later. An easy rating never automatically increases your goal. Meal, drink, or rest routines are optional on-screen cues, not scheduled notifications or inferred nutritional requirements.
 
-Sharing defaults off for each session. When enabled, the completed LIVE summary and confirmed feedback are sent through Garmin Communications to `https://gut-train-web.vercel.app/api/pace-sessions`. DEMO never uploads or changes saved goals. Coaching and local history work offline. A failed upload is shown on the summary; hold UP there to retry. There is no background upload queue.
+Sharing defaults off for each session. When enabled, the completed LIVE summary and confirmed feedback are sent through Garmin Communications to `https://gut-train-web.vercel.app/api/pace-sessions`. DEMO never uploads or changes saved goals. Coaching and local history work offline. A failed upload is shown on the summary; open the task menu there and choose Retry sharing. There is no background upload queue.
 
 The dashboard combines both apps but does not pair users or remotely change watch goals. It is a public hackathon demo: anyone with its URL can read shared summaries. Keep sharing off for private sessions. Local history is retained if connectivity fails. The companion source and running instructions are in `../gut-train-web/README.md`.
+
+## Button and heart-rate feedback revision
+
+During a workout START/STOP stops or resumes the timer. Setup, feedback, and native menus retain Garmin’s standard START-to-select behavior. Hold UP/MENU opens task choices. The LIGHT button remains managed by Garmin and respects device settings. No flashlight or physical sensor LEDs are repurposed.
+
+The existing workout screen shows a green progress arc when fresh filtered HR is within the chosen band, yellow within 5 bpm outside it, and a slowly pulsing red (high) or yellow (low) arc farther outside. Missing or reacquiring HR is gray. These are descriptive bands, not clinical classifications. Text identifies the action even without color. Existing high-HR coaching/haptics retain their sustained-evidence rules. A low-band episode lasting 15 real seconds can produce one cue to check effort; it never instructs an automatic increase in intensity.
+
+The task menu can open Gut Train from setup or after completed feedback. Switching during an unfinished workout requires ending it first; it does not carry a running workout into the other app. Garmin’s System.exitTo presents its own confirmation and handles launch. A missing app shows an installation message.
+
+The visual redesign is intentionally reserved for Claude; see `../CLAUDE_HANDOFF.md`.
