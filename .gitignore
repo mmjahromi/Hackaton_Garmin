@@ -1,0 +1,10 @@
+node_modules/
+.next/
+.vercel/
+bin/
+.DS_Store
+.env*
+developer_key*
+*.pem
+*.der
+*.key

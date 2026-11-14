@@ -1,0 +1,7 @@
+<resources>
+    <!-- Extra fields written into the activity file so they show in Garmin Connect. -->
+    <fitContributions>
+        <fitField id="0" displayInActivitySummary="true" sortOrder="0" precision="0"
+            dataLabel="@Strings.CarbsLabel" unitLabel="@Strings.CarbsUnit" />
+    </fitContributions>
+</resources>

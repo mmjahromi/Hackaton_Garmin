@@ -1,0 +1,7 @@
+<strings>
+    <string id="AppName">Gut Train</string>
+    <string id="CarbsLabel">Carbs eaten</string>
+    <string id="CarbsUnit">g</string>
+    <string id="GutLabel">Gut comfort</string>
+    <string id="GutUnit">/5</string>
+</strings>

@@ -1,0 +1,393 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Shoreline Clock</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05070f; display: flex; align-items: center; justify-content: center; }
+  canvas { max-width: 100vw; max-height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1280" height="720"></canvas>
+<script>
+/* Shoreline Clock — concept animation.
+   index.html        plays the 30 s concept loop
+   index.html#live   shows the real current time
+   window.renderFrame(i) draws frame i at 30 fps (used by render.mjs) */
+
+const W = 1280, H = 720, HZ = 380, DUR = 30, FPS = 30;
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const LIVE = location.hash === '#live';
+const FONT = '"Avenir Next", "Helvetica Neue", Helvetica, Arial, sans-serif';
+
+// ---------- time mapping: video seconds -> simulated seconds since 6:00 AM ----------
+const KEYS = [[0, 11630], [2.5, 11640], [8.5, 11700], [9.5, 11705], [15, 14400],
+              [16.5, 14408], [22, 43200], [28.3, 86400], [30, 86406]];
+let liveBase = 0;
+if (LIVE) {
+  const n = new Date();
+  liveBase = ((n.getHours() * 3600 + n.getMinutes() * 60 + n.getSeconds() + n.getMilliseconds() / 1000) - 6 * 3600 + 86400) % 86400;
+}
+function seg(v, col) {
+  let i = 0;
+  while (i < KEYS.length - 2 && v > KEYS[i + 1][col]) i++;
+  return i;
+}
+function simAt(t) {
+  if (LIVE) return liveBase + t;
+  const i = seg(t, 0), a = KEYS[i], b = KEYS[i + 1];
+  return a[1] + (t - a[0]) / (b[0] - a[0]) * (b[1] - a[1]);
+}
+function invAt(s) {
+  if (LIVE) return s - liveBase;
+  const i = seg(s, 1), a = KEYS[i], b = KEYS[i + 1];
+  return a[0] + (s - a[1]) / (b[1] - a[1]) * (b[0] - a[0]);
+}
+
+// ---------- helpers ----------
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, k) => a + (b - a) * k;
+const smooth = (a, b, x) => { const k = clamp((x - a) / (b - a)); return k * k * (3 - 2 * k); };
+const backOut = x => 1 + 2.7 * Math.pow(x - 1, 3) + 1.7 * Math.pow(x - 1, 2);
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mixA = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
+const css = (c, al = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${al})`;
+const mix = (a, b, k, al = 1) => css(mixA(hex(a), hex(b), k), al);
+const NIGHT = '#0b1030';
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function bez(p0, p1, p2, u) {
+  const v = 1 - u;
+  return [v * v * p0[0] + 2 * v * u * p1[0] + u * u * p2[0], v * v * p0[1] + 2 * v * u * p1[1] + u * u * p2[1]];
+}
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const STARS = Array.from({ length: 110 }, () => [rnd() * W, rnd() * (HZ - 20), 0.6 + rnd() * 1.4, rnd() * 6]);
+
+const SKY = [ // [hour since 6 AM, top, bottom]
+  [0, '#3a4a8c', '#ffb07c'], [1.5, '#4f9fe0', '#d4ecff'], [6, '#2e86de', '#bfe3ff'],
+  [10.5, '#4a90d9', '#ffe0b0'], [12, '#3b2c6e', '#ff7a59'], [13.2, '#0a0f2e', '#232c5e'],
+  [22.8, '#0a0f2e', '#232c5e'], [24, '#3a4a8c', '#ffb07c']];
+function skyAt(hd) {
+  let i = 0;
+  while (i < SKY.length - 2 && hd > SKY[i + 1][0]) i++;
+  const a = SKY[i], b = SKY[i + 1], k = smooth(a[0], b[0], hd);
+  return [mixA(hex(a[1]), hex(b[1]), k), mixA(hex(a[2]), hex(b[2]), k)];
+}
+
+const shoreY = (x, t) => 522 + 9 * Math.sin(x / 170 + t * 1.1) + 5 * Math.sin(x / 61 - t * 0.7) + 5 * Math.sin(t * 0.9);
+const JAR = { x0: 966, x1: 1134, top: 452, bot: 668, cx: 1050 };
+const JIN = { x0: 974, x1: 1126, top: 470, bot: 660 };
+function footPos(i) {
+  const u = i / 59, x = 80 + u * 770, y = 612 + 9 * Math.sin(u * 5);
+  const ang = Math.atan2(9 * 5 * Math.cos(u * 5) / 59, 770 / 59);
+  return [x, y, ang];
+}
+
+// ---------- scene pieces ----------
+function drawSun(x, y, rays, newestScale) {
+  const low = 1 - clamp((HZ - y) / 220);
+  const g = ctx.createRadialGradient(x, y, 20, x, y, 190);
+  g.addColorStop(0, mix('#fff2b0', '#ffb070', low, 0.55)); g.addColorStop(1, 'rgba(255,220,140,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 190, 0, 7); ctx.fill();
+  const R = 44;
+  for (let k = 1; k <= 12; k++) {
+    const a = ((6 + k) % 12) / 12 * Math.PI * 2 - Math.PI / 2, c = Math.cos(a), s = Math.sin(a);
+    if (k <= rays) {
+      const L = 40 * (k === rays ? newestScale : 1);
+      if (L <= 0.5) continue;
+      ctx.strokeStyle = mix('#ffd84a', '#ff9a3c', low); ctx.lineWidth = 10; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x + c * (R + 13), y + s * (R + 13)); ctx.lineTo(x + c * (R + 13 + L), y + s * (R + 13 + L)); ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.beginPath(); ctx.arc(x + c * (R + 16), y + s * (R + 16), 3, 0, 7); ctx.fill();
+    }
+  }
+  const d = ctx.createRadialGradient(x - 12, y - 12, 4, x, y, R);
+  d.addColorStop(0, '#fffbe0'); d.addColorStop(1, mix('#ffcf40', '#ff8a3c', low));
+  ctx.fillStyle = d; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill();
+}
+function drawMoon(x, y, f, pips) {
+  const R = 46;
+  const g = ctx.createRadialGradient(x, y, 20, x, y, 150);
+  g.addColorStop(0, `rgba(200,215,255,${0.35 * f + 0.05})`); g.addColorStop(1, 'rgba(200,215,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 150, 0, 7); ctx.fill();
+  for (let k = 0; k < 12; k++) {
+    const a = k / 12 * Math.PI * 2 - Math.PI / 2;
+    ctx.fillStyle = k < pips ? 'rgba(235,240,255,0.9)' : 'rgba(235,240,255,0.18)';
+    ctx.beginPath(); ctx.arc(x + Math.cos(a) * (R + 18), y + Math.sin(a) * (R + 18), k < pips ? 3.5 : 2.5, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = '#1a2250'; ctx.strokeStyle = 'rgba(200,215,255,0.35)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill(); ctx.stroke();
+  if (f > 0.005) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.35);
+    ctx.fillStyle = '#f4f1dc';
+    ctx.beginPath(); ctx.arc(0, 0, R, -Math.PI / 2, Math.PI / 2, false);
+    ctx.ellipse(0, 0, R * Math.abs(2 * f - 1), R, 0, Math.PI / 2, Math.PI * 1.5, f < 0.5);
+    ctx.fill();
+    ctx.globalAlpha = 0.12; ctx.fillStyle = '#7a7f9a'; ctx.clip();
+    [[14, -12, 9], [22, 14, 6], [2, 20, 5], [-14, -4, 8]].forEach(c => { ctx.beginPath(); ctx.arc(c[0], c[1], c[2], 0, 7); ctx.fill(); });
+    ctx.restore();
+  }
+}
+function reflection(x, col, t, strength) {
+  for (let i = 0; i < 8; i++) {
+    const y = HZ + 10 + i * 15, w = (70 - i * 5) * (0.75 + 0.25 * Math.sin(t * 2.2 + i * 1.7));
+    ctx.fillStyle = css(col, strength * (0.5 - i * 0.045));
+    rr(x - w / 2 + 6 * Math.sin(t * 1.3 + i), y, w, 4, 2); ctx.fill();
+  }
+}
+function drawPalm(night, t) {
+  const sway = Math.sin(t * 0.9) * 5;
+  ctx.strokeStyle = mix('#6b4a2b', NIGHT, night * 0.75); ctx.lineCap = 'round';
+  for (let i = 0; i < 12; i++) { // tapered trunk
+    const a = bez([92, 580], [70, 440], [150 + sway, 318], i / 12), b = bez([92, 580], [70, 440], [150 + sway, 318], (i + 1) / 12);
+    ctx.lineWidth = 20 - i * 0.9; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+  }
+  const tx = 150 + sway, ty = 318;
+  [[-2.9, 150], [-2.3, 165], [-1.75, 140], [-1.2, 150], [-0.6, 170], [-0.1, 150], [0.45, 110], [3.4, 105]].forEach((f, i) => {
+    const a = f[0] + Math.sin(t * 1.1 + i) * 0.03, L = f[1];
+    const ex = tx + Math.cos(a) * L, ey = ty + Math.sin(a) * L + L * 0.38;
+    const mx = tx + Math.cos(a) * L * 0.55, my = ty + Math.sin(a) * L * 0.55 - 18;
+    ctx.fillStyle = mix(i % 2 ? '#2f8a52' : '#256e42', NIGHT, night * 0.75);
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(mx, my - 16, ex, ey); ctx.quadraticCurveTo(mx, my + 20, tx, ty); ctx.fill();
+  });
+  ctx.fillStyle = mix('#5a3d22', NIGHT, night * 0.75);
+  [[-7, 6], [7, 8]].forEach(c => { ctx.beginPath(); ctx.arc(tx + c[0], ty + c[1], 8, 0, 7); ctx.fill(); });
+}
+function drawFoot(i, alpha) {
+  if (alpha <= 0.01) return;
+  const [x, y, ang] = footPos(i), side = i % 2 ? 1 : -1;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(ang + side * 0.12); ctx.translate(0, side * 8);
+  ctx.fillStyle = `rgba(122,82,42,${0.62 * alpha})`;
+  ctx.beginPath(); ctx.ellipse(3, 0, 6.5, 4.4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-6.5, 0, 3.4, 3.4, 0, 0, 7); ctx.fill();
+  ctx.restore();
+}
+function drawJar(level, t) {
+  const { x0, x1, top, bot, cx } = JAR;
+  ctx.fillStyle = 'rgba(90,60,20,0.25)';
+  ctx.beginPath(); ctx.ellipse(cx + 14, bot + 2, 112, 13, 0, 0, 7); ctx.fill();
+  // handle
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 13; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(x1 - 4, (top + bot) / 2 + 6, 46, -1.15, 1.15); ctx.stroke();
+  // glass
+  rr(x0, top, x1 - x0, bot - top, 24); ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fill();
+  // coffee
+  ctx.save(); rr(JIN.x0, JIN.top - 14, JIN.x1 - JIN.x0, JIN.bot - JIN.top + 14, 18); ctx.clip();
+  const ly = JIN.bot - clamp(level) * (JIN.bot - JIN.top);
+  if (level > 0.003) {
+    const g = ctx.createLinearGradient(0, ly, 0, JIN.bot);
+    g.addColorStop(0, '#7a4a22'); g.addColorStop(1, '#3a1f0d');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(JIN.x0, JIN.bot + 2);
+    for (let x = JIN.x0; x <= JIN.x1; x += 8) ctx.lineTo(x, ly + 2.2 * Math.sin(x / 16 + t * 3));
+    ctx.lineTo(JIN.x1, JIN.bot + 2); ctx.fill();
+    ctx.strokeStyle = '#d9b382'; ctx.lineWidth = 4; ctx.beginPath();
+    for (let x = JIN.x0; x <= JIN.x1; x += 8) ctx.lineTo(x, ly + 2.2 * Math.sin(x / 16 + t * 3));
+    ctx.stroke();
+  }
+  ctx.restore();
+  // markers
+  ctx.font = `700 19px ${FONT}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [[0, '0'], [0.25, '15'], [0.5, '30'], [0.75, '45']].forEach(m => {
+    const y = JIN.bot - m[0] * (JIN.bot - JIN.top), hit = level >= m[0] - 0.002 && (m[0] > 0 || level > 0);
+    ctx.strokeStyle = hit ? '#ffd84a' : 'rgba(255,255,255,0.95)'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0 - 6, y); ctx.lineTo(x0 + (m[0] === 0.5 ? 40 : 28), y); ctx.stroke();
+    ctx.fillStyle = 'rgba(40,25,10,0.55)'; ctx.fillText(m[1], x0 - 13, y + 1.5);
+    ctx.fillStyle = hit ? '#ffd84a' : '#ffffff'; ctx.fillText(m[1], x0 - 14, y);
+  });
+  // outline, rim, highlight
+  rr(x0, top, x1 - x0, bot - top, 24); ctx.strokeStyle = 'rgba(255,255,255,0.92)'; ctx.lineWidth = 4.5; ctx.stroke();
+  rr(x0 - 7, top - 9, x1 - x0 + 14, 18, 9); ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 7;
+  ctx.beginPath(); ctx.moveTo(x1 - 26, top + 34); ctx.lineTo(x1 - 26, bot - 40); ctx.stroke();
+  // steam
+  if (level > 0.08) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 4;
+    for (let k = -1; k <= 1; k++) {
+      ctx.beginPath();
+      for (let j = 0; j <= 10; j++) {
+        const y = top - 18 - j * 5, x = cx + k * 34 + 7 * Math.sin(j * 0.7 + t * 2.5 + k);
+        j ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+}
+function pill(text, cxp, y, size, alpha) {
+  if (alpha <= 0.01) return;
+  ctx.save(); ctx.globalAlpha = alpha;
+  ctx.font = `600 ${size}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const w = ctx.measureText(text).width + 44, h = size * 1.9;
+  rr(cxp - w / 2, y - h / 2, w, h, h / 2); ctx.fillStyle = 'rgba(10,14,40,0.72)'; ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText(text, cxp, y + 1);
+  ctx.restore();
+}
+const CAPS = [
+  [2.7, 8.4, 'Seconds  ·  every footstep is one second, and 60 steps make a minute'],
+  [8.6, 14.6, 'Minutes  ·  each finished trail tops up the coffee jar: marks at 15, 30, 45'],
+  [14.8, 17.5, 'Hours  ·  a full jar pours into the sun as a new ray'],
+  [17.7, 21.9, 'Count the rays  ·  sunrise at 6 AM, twelve rays by 6 PM'],
+  [22.1, 28.2, 'Night  ·  the full moon drains: half at midnight, new moon at dawn']];
+
+// ---------- frame ----------
+function draw(t) {
+  const sim = simAt(t), sd = ((sim % 86400) + 86400) % 86400, hd = sd / 3600, h = Math.floor(hd);
+  const speed = LIVE ? 1 : (simAt(t + 0.01) - sim) / 0.01, slow = speed < 15;
+  const night = smooth(11.6, 13, hd) * (1 - smooth(22.6, 24, hd));
+  const mins = (sd % 3600) / 60, secs = sd % 60;
+
+  // events
+  const hourSim = Math.floor(sim / 3600) * 3600, tvH = invAt(hourSim), sinceH = t - tvH;
+  const drainDur = Math.min(0.6, 0.35 * (invAt(hourSim + 3600) - tvH));
+  const tvM = invAt(Math.floor(sim / 60) * 60), sinceM = t - tvM;
+
+  // sky
+  const [top, bot] = skyAt(hd);
+  let g = ctx.createLinearGradient(0, 0, 0, HZ);
+  g.addColorStop(0, css(top)); g.addColorStop(1, css(bot));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, HZ);
+  STARS.forEach(s => {
+    ctx.fillStyle = `rgba(255,255,255,${night * (0.55 + 0.45 * Math.sin(t * 2 + s[3]))})`;
+    ctx.beginPath(); ctx.arc(s[0], s[1], s[2], 0, 7); ctx.fill();
+  });
+
+  // sun & moon positions
+  const d = sd / 43200, ds = d > 1.5 ? d - 2 : d;
+  const sx = lerp(330, 1000, ds), sy = HZ + 10 - Math.sin(Math.PI * ds) * 275;
+  const rays = sd < 43200 ? h : (d <= 1.5 ? 12 : 0);
+  let dn = d - 1; if (dn < -0.5) dn += 2;
+  const mx = lerp(330, 1000, dn), my = HZ + 10 - Math.sin(Math.PI * dn) * 255;
+  const moonF = clamp(1 - dn), pips = 12 - clamp(Math.floor(dn * 12), 0, 12);
+  const rayScale = sinceH < 1.2 ? clamp(backOut(clamp((sinceH - drainDur * 0.6) / 0.45)), 0, 2) : 1;
+
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, HZ); ctx.clip();
+  if (sy < HZ + 120) drawSun(sx, sy, rays, rayScale);
+  if (my < HZ + 80) drawMoon(mx, my, moonF, pips);
+  // clouds
+  [[140, 120, 1], [620, 70, 0.8], [980, 160, 1.15]].forEach((c, i) => {
+    const x = ((c[0] + t * (7 + i * 3)) % (W + 300)) - 150;
+    ctx.fillStyle = `rgba(255,255,255,${0.85 * (1 - night)})`;
+    [[0, 0, 26], [28, -12, 32], [62, -2, 28], [32, 8, 30], [-26, 6, 20]].forEach(b => {
+      ctx.beginPath(); ctx.arc(x + b[0] * c[2], c[1] + b[1] * c[2], b[2] * c[2], 0, 7); ctx.fill();
+    });
+  });
+  // island
+  ctx.fillStyle = mix('#4f7f86', NIGHT, 0.25 + night * 0.6);
+  ctx.beginPath(); ctx.moveTo(1010, HZ); ctx.quadraticCurveTo(1090, 322, 1160, 352); ctx.quadraticCurveTo(1215, 330, 1280, 362); ctx.lineTo(1280, HZ); ctx.fill();
+  ctx.restore();
+
+  // sea
+  g = ctx.createLinearGradient(0, HZ, 0, 545);
+  g.addColorStop(0, css(mixA(bot, hex('#2a7fb8'), 0.62))); g.addColorStop(1, '#3cb4c8');
+  ctx.fillStyle = g; ctx.fillRect(0, HZ, W, 180);
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 9; i++) {
+    const y = HZ + 14 + i * 14, x = ((i * 271 + t * (18 + i * 4)) % (W + 200)) - 100;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 30, y - 5, x + 60 + i * 6, y); ctx.stroke();
+  }
+  if (sy < HZ) reflection(sx, [255, 214, 120], t, clamp((HZ - sy) / 60) * 0.9 + 0.2);
+
+  // sand
+  g = ctx.createLinearGradient(0, 510, 0, H);
+  g.addColorStop(0, '#f6dfa9'); g.addColorStop(1, '#e2bd78');
+  const shore = () => { ctx.beginPath(); ctx.moveTo(0, shoreY(0, t)); for (let x = 16; x <= W; x += 16) ctx.lineTo(x, shoreY(x, t)); };
+  shore(); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fillStyle = g; ctx.fill();
+  ctx.save(); ctx.translate(0, 9); shore(); ctx.strokeStyle = 'rgba(190,150,90,0.4)'; ctx.lineWidth = 16; ctx.stroke(); ctx.restore();
+  shore(); ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 6; ctx.stroke();
+
+  // footsteps (seconds)
+  const washing = slow && sinceM < 1.0;
+  if (slow) {
+    if (sinceM < 0.5) for (let i = 0; i < 60; i++) drawFoot(i, 1 - sinceM / 0.5);
+    const n = Math.floor(secs);
+    for (let i = 0; i < n; i++) drawFoot(i, 1);
+    if (n < 60) drawFoot(n, clamp((secs - n) * 3) * 0.999);
+  } else {
+    for (let i = 0; i < 60; i++) drawFoot(i, 0.4);
+  }
+  ctx.font = `700 12px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(122,82,42,0.75)';
+  [15, 30, 45, 60].forEach(k => { const p = footPos(k - 1); ctx.fillText(k, p[0], p[1] + 27); });
+  if (washing) {
+    const reach = Math.sin(Math.PI * sinceM), edge = x => lerp(shoreY(x, t), 648, reach) + 6 * Math.sin(x / 50 + t * 3);
+    shore(); for (let x = W; x >= 0; x -= 16) ctx.lineTo(x, edge(x));
+    ctx.fillStyle = `rgba(255,255,255,${0.3 * reach + 0.08})`; ctx.fill();
+    ctx.beginPath(); for (let x = 0; x <= W; x += 16) ctx.lineTo(x, edge(x));
+    ctx.strokeStyle = `rgba(255,255,255,${0.85 * reach})`; ctx.lineWidth = 5; ctx.stroke();
+  }
+
+  // jar (minutes)
+  let level;
+  if (slow) level = clamp((Math.floor(mins) - 1 + smooth(0.7, 0.9, sinceM)) / 60);
+  else level = mins / 60;
+  if (sinceH < drainDur) level = Math.max(level, 1 - smooth(0, 1, sinceH / drainDur));
+  drawJar(level, t);
+  drawPalm(night, t);
+
+  // night tint over sea + sand
+  if (night > 0.01) {
+    ctx.fillStyle = `rgba(8,12,44,${0.58 * night})`; ctx.fillRect(0, HZ, W, H - HZ);
+    if (my < HZ && moonF > 0.02) reflection(mx, [215, 225, 255], t, 0.9 * moonF * night);
+  }
+
+  // minute drop: last footstep -> jar
+  if (slow && sinceH > 1.5 && sinceM > 0.15 && sinceM < 0.75) {
+    const p = bez([850, 606], [960, 330], [JAR.cx, JAR.top + 4], (sinceM - 0.15) / 0.6);
+    ctx.fillStyle = '#5a3418'; ctx.beginPath(); ctx.arc(p[0], p[1], 8, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(p[0] - 2.5, p[1] - 2.5, 2.5, 0, 7); ctx.fill();
+  }
+  // hour pour: jar -> sun (or moon)
+  if (sinceH >= 0 && sinceH < drainDur + 0.3) {
+    const toSun = h >= 1 && h <= 12, tx = toSun ? sx : mx, ty = Math.min(toSun ? sy : my, HZ - 10);
+    const c = [(JAR.cx + tx) / 2, Math.min(ty, JAR.top) - 110];
+    for (let i = 0; i < 12; i++) {
+      const u = sinceH / (drainDur + 0.3) * 1.6 - i * 0.05;
+      if (u <= 0 || u >= 1) continue;
+      const p = bez([JAR.cx, JAR.top - 8], c, [tx, ty], u);
+      ctx.fillStyle = toSun ? `rgba(255,216,74,${0.95 - u * 0.3})` : `rgba(200,170,130,${0.95 - u * 0.3})`;
+      ctx.beginPath(); ctx.arc(p[0], p[1], 7 - i * 0.3, 0, 7); ctx.fill();
+    }
+  }
+
+  // HUD: decoded time
+  const tot = (6 * 3600 + sd) % 86400, HH = Math.floor(tot / 3600), MM = Math.floor(tot % 3600 / 60), SS = Math.floor(tot % 60);
+  const p2 = n => String(n).padStart(2, '0'), blur = speed > 300;
+  const clock = `${HH % 12 || 12}:${p2(MM)}${blur ? '' : ':' + p2(SS)} ${HH < 12 ? 'AM' : 'PM'}`;
+  const isDay = sd < 43200;
+  const legend = (isDay ? `${rays} ray${rays === 1 ? '' : 's'}` : `moon ${Math.round(moonF * 100)}%`) + `  ·  ${MM} min` + (blur ? '' : `  ·  ${SS} steps`);
+  rr(32, 28, 318, 92, 18); ctx.fillStyle = 'rgba(10,14,40,0.5)'; ctx.fill();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#fff'; ctx.font = `700 36px ${FONT}`; ctx.fillText(clock, 52, 72);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = `500 16px ${FONT}`; ctx.fillText(legend, 52, 102);
+  if (!LIVE && speed > 1.5) {
+    ctx.textAlign = 'right'; ctx.fillStyle = '#ffd84a'; ctx.font = `700 14px ${FONT}`;
+    ctx.fillText('×' + (speed >= 100 ? Math.round(speed / 10) * 10 : Math.round(speed)), 334, 54);
+  }
+
+  if (LIVE) return;
+  // captions, title, end card
+  CAPS.forEach(c => pill(c[2], W / 2, 693, 19, Math.min(smooth(c[0], c[0] + 0.3, t), 1 - smooth(c[1] - 0.3, c[1], t))));
+  const ta = 1 - smooth(1.9, 2.5, t), ea = smooth(28.5, 29.0, t), card = Math.max(ta, ea);
+  if (card > 0.01) {
+    ctx.fillStyle = `rgba(8,12,40,${0.5 * card})`; ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = card; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+    ctx.font = `700 76px ${FONT}`; ctx.fillText(ta > ea ? 'Shoreline Clock' : 'Shoreline Clock', W / 2, 340);
+    ctx.font = `500 28px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fillText(ta > ea ? 'A day you can read like a view' : 'Footsteps · coffee · sun rays · moonlight', W / 2, 392);
+    ctx.globalAlpha = 1;
+  }
+}
+
+window.renderFrame = i => draw(i / FPS);
+if (location.hash !== '#export') {
+  const t0 = performance.now();
+  const loop = () => { const e = (performance.now() - t0) / 1000; draw(LIVE ? e : e % DUR); requestAnimationFrame(loop); };
+  loop();
+}
+</script>
+</body>
+</html>
