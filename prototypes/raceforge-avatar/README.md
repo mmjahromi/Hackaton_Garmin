@@ -93,8 +93,10 @@ lab. Its existing controls and all nine tests are preserved.
 
 ## Verification and handoff
 
+[Final technical audit](FINAL_TECHNICAL_AUDIT.md) and [team integration handoff](TEAM_INTEGRATION_HANDOFF.md) record the current source review, reproduced/fixed plan-resizing crash, fresh 22-test results and the avatar components already embedded on the default branch.
+
 SDK 9.1.0 normal/test builds pass on `fenix7pro_sim`. The final simulator suite
-reports **21 passed, 0 failed, 0 errors**, including native storage restart at the
+reports **22 passed, 0 failed, 0 errors**, including native storage restart at the
 maximum bounded history sizes, actual BehaviorDelegate callbacks, full-week
 completion and LIVE provider/session resource teardown. Raw logs stay under
 ignored `bin/`; the runner's misleading exit code 1 is handled using its test summary.
