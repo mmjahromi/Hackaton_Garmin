@@ -1,0 +1,6 @@
+# Build fingerprints
+
+Source/test fingerprint: 4106dabb62f75b621a57ad7e70c2292b661d9d362da35a5cd49054523ce97cbe
+
+b60ac4174ab0ae7a62866fc4d2af8ec4d4b25815008dcccecd9a3047de661791  pacepilot-test.prg
+c6ccc2979b7bf3ea8551238ac3e9ae887eb3c1655760d55c50a847a4fef0b048  pacepilot.prg

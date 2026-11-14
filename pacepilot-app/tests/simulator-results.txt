@@ -1,0 +1,127 @@
+------------------------------------------------------------------------------
+Executing test T01_thresholds...
+PASS
+------------------------------------------------------------------------------
+Executing test T01_rawReplay...
+DEBUG (12:19): Replay t=36 symbol (189)
+DEBUG (12:19): Replay t=81 symbol (190)
+DEBUG (12:19): Replay t=141 symbol (207)
+DEBUG (12:19): Replay t=160 symbol (188)
+PASS
+------------------------------------------------------------------------------
+Executing test T02_noise...
+PASS
+------------------------------------------------------------------------------
+Executing test T03_recovery...
+PASS
+------------------------------------------------------------------------------
+Executing test T03_stillRevokes...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_hrLossEveryState...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_freshnessAndReacquisition...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_cachedSamplesNotDuplicated...
+PASS
+------------------------------------------------------------------------------
+Executing test T05_pauseAndGap...
+PASS
+------------------------------------------------------------------------------
+Executing test T06_eventsAndMode...
+PASS
+------------------------------------------------------------------------------
+Executing test T06_manualWalkRestartsMinimum...
+PASS
+------------------------------------------------------------------------------
+Executing test T07_goalAndUnknownMovement...
+PASS
+------------------------------------------------------------------------------
+Executing test T08_totalLossControls...
+PASS
+------------------------------------------------------------------------------
+Executing test T09_motionFallback...
+PASS
+------------------------------------------------------------------------------
+Executing test T09_accelerometerReduction...
+PASS
+------------------------------------------------------------------------------
+Executing test T10_pressureTrend...
+PASS
+------------------------------------------------------------------------------
+Executing test T10_terrainNeverChangesEffortTiming...
+PASS
+------------------------------------------------------------------------------
+Executing test T11_storageAndAlertGate...
+PASS
+------------------------------------------------------------------------------
+Executing test T11_demoDoesNotWrite...
+PASS
+------------------------------------------------------------------------------
+Executing test configBounds...
+PASS
+------------------------------------------------------------------------------
+Executing test T05_resumeRejectsCachedReading...
+PASS
+------------------------------------------------------------------------------
+Executing test T06_restartAndDuplicateEvents...
+PASS
+------------------------------------------------------------------------------
+Executing test T10_deadbandAndLoss...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_boundsAndFutureReadings...
+PASS
+------------------------------------------------------------------------------
+Executing test T08_screenAndControls...
+PASS
+------------------------------------------------------------------------------
+Executing test T08_renderReplayStates...
+PASS
+------------------------------------------------------------------------------
+Executing test T11_storageRoundTrip...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_lossReplay...
+PASS
+------------------------------------------------------------------------------
+Executing test T04_sourceErrorStatus...
+PASS
+
+==============================================================================
+RESULTS
+Test:                               Status:
+T01_thresholds                      PASS
+T01_rawReplay                       PASS
+T02_noise                           PASS
+T03_recovery                        PASS
+T03_stillRevokes                    PASS
+T04_hrLossEveryState                PASS
+T04_freshnessAndReacquisition       PASS
+T04_cachedSamplesNotDuplicated      PASS
+T05_pauseAndGap                     PASS
+T06_eventsAndMode                   PASS
+T06_manualWalkRestartsMinimum       PASS
+T07_goalAndUnknownMovement          PASS
+T08_totalLossControls               PASS
+T09_motionFallback                  PASS
+T09_accelerometerReduction          PASS
+T10_pressureTrend                   PASS
+T10_terrainNeverChangesEffortTiming PASS
+T11_storageAndAlertGate             PASS
+T11_demoDoesNotWrite                PASS
+configBounds                        PASS
+T05_resumeRejectsCachedReading      PASS
+T06_restartAndDuplicateEvents       PASS
+T10_deadbandAndLoss                 PASS
+T04_boundsAndFutureReadings         PASS
+T08_screenAndControls               PASS
+T08_renderReplayStates              PASS
+T11_storageRoundTrip                PASS
+T04_lossReplay                      PASS
+T04_sourceErrorStatus               PASS
+Ran 29 tests
+
+PASSED (passed=29, failed=0, errors=0)

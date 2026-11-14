@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "units": {"time": "seconds", "hr": "bpm", "speed": "m/s", "motionRms": "milli-g", "pressure": "Pa"},
+  "goalSec": 180,
+  "realPlaybackRate": 4,
+  "initialTick": {"t": 0, "dt": 0},
+  "subsequentTickSeconds": 1,
+  "segments": [
+    {"from": 0, "through": 19, "hr": 130, "speed": 2.5, "motionRms": 150, "pressure": 100000},
+    {"from": 20, "through": 79, "hr": 150, "speed": 2.0, "motionRms": 150, "pressureExpression": "100000 - 2 * (t - 19)"},
+    {"from": 80, "through": 99, "hr": 150, "speed": 2.0, "motionRms": 150, "pressure": 99880},
+    {"from": 100, "through": 159, "hr": 130, "speed": 1.2, "motionRms": 100, "pressure": 99880},
+    {"from": 160, "through": 180, "hr": 130, "speed": 2.4, "motionRms": 150, "pressure": 99880}
+  ],
+  "events": [{"at": 160, "event": "ACCEPT_RUN"}],
+  "expected": [
+    {"at": 36, "advice": "EASE_OFF"},
+    {"at": 81, "advice": "WALK"},
+    {"at": 141, "advice": "READY_TO_RUN"},
+    {"at": 160, "advice": "RUN_EASY"},
+    {"at": 180, "lifecycle": "COMPLETE"}
+  ],
+  "lossVariant": {"hrNullFrom": 115, "hrNullThrough": 129},
+  "execution": "ReplayProvider.mc is the executable fixture; T01_rawReplay asserts the listed timings through production filtering and rules."
+}
