@@ -29,7 +29,7 @@ mkdir -p bin
 "$SDK/bin/monkeydo" bin/guttrain-test.prg fenix7pro -t
 ```
 
-Both builds compile. All 25 tests pass in the simulator for this revision; see `tests/controls-simulator-results.txt`. Native menu interaction and device sensor/haptic behavior still need acceptance testing. No physical-watch or visual validation has been performed for this revision. Sideload the production PRG into `GARMIN/APPS` using Garmin’s supported USB workflow and verify sensor permissions, buttons, cue timing, offline storage, and explicit sharing before presenting a hardware demo.
+Both builds compile. All 27 tests pass in the simulator for this revision; see `tests/live-simulator-results.txt`. Native menu interaction and device sensor/haptic behavior still need acceptance testing. No physical-watch or visual validation has been performed for this revision. Sideload the production PRG into `GARMIN/APPS` using Garmin’s supported USB workflow and verify sensor permissions, buttons, cue timing, offline storage, and explicit sharing before presenting a hardware demo.
 
 Dashboard instructions: `../gut-train-web/README.md`.
 
@@ -38,3 +38,13 @@ Dashboard instructions: `../gut-train-web/README.md`.
 Hold UP/MENU from the home screen to select Open PacePilot. During a workout, switching is blocked until it is finished; return home after the summary to switch. Both apps must be installed. Garmin supplies the switch confirmation; failure leaves the current app open. The LIGHT key keeps its native behavior. The new configurable HR band indicators belong to PacePilot; Gut Train retains its existing high-HR feeding advice.
 
 The redesigned visual UI is reserved for Claude. See `../CLAUDE_HANDOFF.md` for the remaining design and validation work.
+
+## Live workout feed (current revision)
+
+Enable **Share live + summary** during watch setup, then start a LIVE session with the paired phone connected to the Internet. This explicitly shares heart rate and workout metrics to the public demo. It defaults off. DEMO sessions remain local in the watch builds; API tests use labeled synthetic packets only against isolated/local storage.
+
+Each watch uploads at most one normal snapshot every 5 seconds, with immediate status-change attempts and a single request in flight. The dashboard live panel polls every 2 seconds. This is near-live HTTP telemetry via Garmin Communications, not a guaranteed low-latency socket. Slow Bluetooth/phone/network connections can delay updates. No raw GPS coordinates are uploaded.
+
+PacePilot sends filtered HR when ready, elapsed time, goal, estimated moving time, speed, and active/paused/completed state. Gut Train sends HR, elapsed time, distance, speed, logged carbs/fluids, and state. Paused/completed packets carry no current HR. The dashboard shows the last120 snapshots (about 10 min at the nominal rate); gaps are not interpolated. After 20 sec without a fresh sample it marks the stream stale and stops presenting old HR as current. End delivery is best effort: if connectivity is lost while ending, the dashboard becomes stale rather than inventing completion.
+
+The API keeps the newest session per app/mode for up to 24 h, with atomic Redis ordering checks to ignore duplicate, delayed, or post-completion packets. This is a shared hackathon feed, not multi-user private tracking. Existing summaries remain separate. The new watch binaries must be installed; deploying the website does not update the watch.

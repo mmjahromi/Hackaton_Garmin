@@ -40,6 +40,7 @@ class PacePilotView extends WatchUi.View {
     var nextChoice = 0;
     var routine = 0;
     var sync;
+    var liveFeed=new LiveFeed();
     var lowCueId = -2;
     var lowGate = new LowBandGate();
     var historyIndex = -1;
@@ -65,6 +66,7 @@ class PacePilotView extends WatchUi.View {
     function ready() { return controller == null || controller.lifecycle == :READY; }
     function startSession() {
         if (!Config.valid(config)) { return; }
+        liveFeed = new LiveFeed();
         sync = new DashboardSync();
         configSaved = storage.saveConfig(config);
         var c = Config.defaults();
@@ -100,7 +102,18 @@ class PacePilotView extends WatchUi.View {
             lastReal = realNow;
             signal(realNow);
         }
+        publishLive();
         WatchUi.requestUpdate();
+    }
+    function publishLive() {
+        if (controller == null || controller.lifecycle == :READY) { return; }
+        var c=controller;var f=c.features;
+        var state=c.lifecycle == :COMPLETE ? "completed" : (c.lifecycle == :PAUSED ? "paused" : "active");
+        liveFeed.send({"schemaVersion"=>1,"app"=>"pacepilot","mode"=>mode == :LIVE ? "LIVE" : "DEMO",
+          "sessionId"=>c.sessionId,"status"=>state,"elapsedSec"=>c.sessionSec.toNumber(),
+          "goalSec"=>c.config[:goalSec],"movingSec"=>c.movingSec.toNumber(),
+          "heartRate"=>state.equals("active") && f[:hrReady] ? f[:hrBpm] : null,
+          "speedMps"=>state.equals("active") ? f[:speedMps] : null},share);
     }
     function signal(now) {
         var band=controller.lifecycle == :ACTIVE ? HrFeedback.state(controller.features[:hrBpm],controller.features[:hrReady],controller.config[:hrLowBpm],controller.config[:hrHighBpm]) : :UNKNOWN;
@@ -153,6 +166,7 @@ class PacePilotView extends WatchUi.View {
             controller.dispatch(controller.lifecycle == :PAUSED ? :RESUME : :PAUSE);
             controller.tick(mode == :DEMO ? virtualMs : System.getTimer()-origin);
         }
+        publishLive();
         WatchUi.requestUpdate();
     }
     function adjust(direction) {

@@ -75,7 +75,7 @@ class NutritionSetup extends WatchUi.View {
     function onUpdate(dc as Dc) as Void {
         dc.setColor(Graphics.COLOR_BLACK,Graphics.COLOR_BLACK); dc.clear();
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
-        var title = summary == null ? ["Your fuel plan", "What will you log?", "Carbs per portion", "Drink cue interval", "Share summary?", "Confirm your plan"][stage] : "Next session plan";
+        var title = summary == null ? ["Your fuel plan", "What will you log?", "Carbs per portion", "Drink cue interval", "Share live + summary?", "Confirm your plan"][stage] : "Next session plan";
         var options = [target + " g/h", FOODS[food], portion + " g",
             drinkIndex == 0 ? "Off" : (DRINKS[drinkIndex] / 60) + " min",
             sharing ? "Public demo site" : "Keep on watch", target + " g/h"];

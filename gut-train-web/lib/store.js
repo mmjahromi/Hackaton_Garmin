@@ -26,7 +26,9 @@ async function redis(command) {
   if (!response.ok) {
     throw new Error(`Redis request failed with status ${response.status}`);
   }
-  return (await response.json()).result;
+  const data = await response.json();
+  if (data.error) throw new Error("Redis command failed");
+  return data.result;
 }
 
 function memory() {
@@ -121,4 +123,42 @@ export async function listPaceSessions() {
     ? await redis(["HVALS", PACE_KEY])
     : [...(globalThis.__pacePilotSessions ?? new Map()).values()];
   return rows.map(row => JSON.parse(row)).sort((a, b) => b.sessionId - a.sessionId).slice(0, 200);
+}
+
+// One most-recent session per app/mode, isolated from completed summaries.
+// Redis Lua keeps ordering checks and bounded history atomic across functions.
+const LIVE_KEY = 'garmin:live:v1';
+const LIVE_SCRIPT = `
+local raw=redis.call('HGET',KEYS[1],ARGV[1])
+local incoming=cjson.decode(ARGV[2])
+local history={}
+if raw then
+ local old=cjson.decode(raw)
+ if old.sessionId>incoming.sessionId then return 0 end
+ if old.sessionId==incoming.sessionId then
+  if old.sequence>=incoming.sequence or old.status=='completed' then return 0 end
+  history=old.samples
+ end
+end
+local point=cjson.decode(ARGV[2])
+table.insert(history,point)
+while #history>120 do table.remove(history,1) end
+incoming.samples=history
+redis.call('HSET',KEYS[1],ARGV[1],cjson.encode(incoming))
+redis.call('EXPIRE',KEYS[1],86400)
+return 1`;
+export async function upsertLive(packet, now = Math.floor(Date.now()/1000)) {
+  const value={...packet,receivedAt:now};
+  const key=packet.app+':'+packet.mode;
+  if(isPersistent) return Boolean(await redis(['EVAL',LIVE_SCRIPT,'1',LIVE_KEY,key,JSON.stringify(value)]));
+  const records=globalThis.__garminLive ??= new Map();
+  const old=records.get(key);
+  if(old && (old.sessionId>value.sessionId || (old.sessionId===value.sessionId && (old.sequence>=value.sequence || old.status==='completed')))) return false;
+  const samples=old?.sessionId===value.sessionId ? old.samples : [];
+  records.set(key,{...value,samples:[...samples,value].slice(-120)});
+  return true;
+}
+export async function listLive(now = Math.floor(Date.now()/1000)) {
+  const rows=isPersistent ? (await redis(['HVALS',LIVE_KEY])).map(JSON.parse) : [...(globalThis.__garminLive ?? new Map()).values()];
+  return rows.filter(row=>now-row.receivedAt<86400).sort((a,b)=>b.receivedAt-a.receivedAt);
 }

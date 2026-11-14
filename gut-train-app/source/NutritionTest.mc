@@ -30,3 +30,26 @@ function workoutClockExcludesStops(logger as Logger) as Boolean {
     Test.assert(WorkoutClock.seconds(0,1000,0,0,false,1)==0);
     return true;
 }
+
+(:test)
+function liveFeedRespectsConsentAndRate(logger as Logger) as Boolean {
+    Test.assert(!LiveFeedPolicy.due(false,"LIVE",false,10000,null,true));
+    Test.assert(!LiveFeedPolicy.due(true,"DEMO",false,10000,null,true));
+    Test.assert(!LiveFeedPolicy.due(true,"LIVE",true,10000,null,true));
+    Test.assert(!LiveFeedPolicy.due(true,"LIVE",false,4999,0,false));
+    Test.assert(LiveFeedPolicy.due(true,"LIVE",false,5000,0,false));
+    Test.assert(LiveFeedPolicy.due(true,"LIVE",false,1,0,true));
+    return true;
+}
+
+(:test)
+function liveFeedKeepsLatestPendingState(logger as Logger) as Boolean {
+    var feed=new LiveFeed();feed.busy=true;feed.lastStatus="active";
+    feed.send({"mode"=>"LIVE","status"=>"paused"},true);
+    Test.assert(feed.pending["status"].equals("paused"));
+    feed.send({"mode"=>"LIVE","status"=>"active"},true);
+    Test.assert(feed.pending["status"].equals("active"));
+    feed.send({"mode"=>"LIVE","status"=>"completed"},true);
+    Test.assert(feed.pending["status"].equals("completed"));
+    return true;
+}

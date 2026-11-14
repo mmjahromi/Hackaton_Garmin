@@ -31,6 +31,8 @@ class SessionView extends WatchUi.View {
     private var _startMs as Number = 0;
     private var _started as Boolean = false;
     private var _finished as Boolean = false;
+    var liveFeed=new LiveFeed();
+    private var _liveSessionId as Number = 0;
     var paused as Boolean = false;
     private var _pauseAt as Number = 0;
     private var _pausedMs as Number = 0;
@@ -86,6 +88,7 @@ class SessionView extends WatchUi.View {
         if (!_started) {
             _started = true;
             _startMs = System.getTimer();
+            _liveSessionId=Time.now().value();
             _userMaxHr = profileMaxHr();
             if (demoMode && _userMaxHr == 0) { _userMaxHr = 185; }
             startRecording();
@@ -154,9 +157,11 @@ class SessionView extends WatchUi.View {
 
     function tick() as Void {
         if (_finished || paused) {
+            publishLive();
             return;
         }
         sampleSensors();
+        publishLive();
         var sinceDrink = elapsedS() - _lastDrinkS;
         if (!_drinkDue && nutritionDrinkSec > 0 && sinceDrink >= nutritionDrinkSec) {
             _drinkDue = true;
@@ -382,6 +387,14 @@ class SessionView extends WatchUi.View {
         return 0;
     }
 
+    function publishLive() as Void {
+        var state=_finished ? "completed" : (paused ? "paused" : "active");
+        liveFeed.send({"schemaVersion"=>1,"app"=>"guttrain","mode"=>demoMode ? "DEMO" : "LIVE",
+            "sessionId"=>_liveSessionId,"status"=>state,"elapsedSec"=>elapsedS(),
+            "heartRate"=>!paused && !_finished && _hr != null && _hr >= 30 && _hr <= 250 ? _hr : null,
+            "distanceM"=>_distance,"speedMps"=>paused || _finished ? null : _currentSpeed,
+            "carbsG"=>_carbs,"fluidMl"=>_fluid},nutritionShare);
+    }
     function togglePause() as Void {
         if (_finished) { return; }
         if (!paused) {
@@ -394,6 +407,7 @@ class SessionView extends WatchUi.View {
             startSensors();
             if (_recording != null) { _recording.start(); }
         }
+        publishLive();
         WatchUi.requestUpdate();
     }
     function tasks() as Void {
@@ -412,6 +426,7 @@ class SessionView extends WatchUi.View {
         closeStop(System.getTimer());
         stopSensors();
         _finished = true;
+        publishLive();
         stopTimer();
 
         var durationS = elapsedS();

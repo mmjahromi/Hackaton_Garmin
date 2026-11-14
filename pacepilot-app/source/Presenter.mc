@@ -60,7 +60,7 @@ module Presenter {
             return;
         }
         if (v.ready()) {
-            var titles = ["Choose mode", "Example HR low", "Example HR high", "Session goal", "Energy today", "Soreness today", "Today's session", "Share summary?", "Confirm settings"];
+            var titles = ["Choose mode", "Example HR low", "Example HR high", "Session goal", "Energy today", "Soreness today", "Today's session", "Share live + summary?", "Confirm settings"];
             var values = [v.mode == :LIVE ? "Live sensors" : (v.scenario == :LOSS ? "Replay HR loss" : "Replay standard"),
                 shown(v.config[:hrLowBpm]) + " bpm", shown(v.config[:hrHighBpm]) + " bpm",
                 (v.config[:goalSec]/60).toString() + " min",
@@ -75,7 +75,7 @@ module Presenter {
             if (v.stage == 7) {
                 line(dc, 158, "gut-train-web.vercel.app", tiny, grey);
                 line(dc, 187, "START confirms choice", tiny, white);
-                line(dc, 213, "Summary visible publicly", tiny, grey);
+                line(dc, 213, "Live HR visible publicly", tiny, grey);
                 return;
             }
             line(dc, 158, v.mode == :DEMO ? "Replay goal 3 min" : "Walks count toward goal", tiny, grey);
@@ -136,7 +136,7 @@ module Presenter {
             line(dc, 135, "Est. moving " + timeText(c.movingSec), tiny, white);
             line(dc, 162, f[:movement] == :UNKNOWN ? "Motion unknown" : (f[:movement] == :STILL ? "Stopped? Pause to rest" : "Movement estimated"), tiny, grey);
             line(dc, 190, f[:speedMps] == null ? "Speed -- m/s" : "Speed " + f[:speedMps].format("%.1f") + " m/s", tiny, white);
-            line(dc, 214, "UP / DOWN returns", tiny, grey);
+            line(dc, 214, v.liveFeed.status, tiny, grey);
             return;
         }
         var band=HrFeedback.state(f[:hrBpm],f[:hrReady],c.config[:hrLowBpm],c.config[:hrHighBpm]);

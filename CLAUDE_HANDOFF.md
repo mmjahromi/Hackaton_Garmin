@@ -14,7 +14,7 @@ Repo: https://github.com/mmjahromi/Hackaton_Garmin
 Branch: `dashboard-and-recovery`.
 Previous nutrition/recovery commit: `50e15a3`; button-feedback revision follows it. Run git log/status to find the latest commit. Changes are copied from the main workspace into the checkout. Never overwrite unrelated prototype folders. Back up before broad edits.
 
-Production dashboard: https://gut-train-web.vercel.app . It was deployed for the nutrition/recovery revision. Current button changes are watch-only; no new web deployment was needed. GitHub push and Vercel deployment are separate operations in this workflow.
+Production dashboard: https://gut-train-web.vercel.app . It was deployed for the nutrition/recovery revision. The subsequent live telemetry revision updates both watches and redeploys the dashboard. GitHub push and Vercel deployment are separate operations in this workflow.
 
 ## Implemented
 
@@ -40,15 +40,15 @@ LIGHT is intentionally untouched in both apps: Garmin handles native backlight b
 
 ### Dashboard and privacy
 
-`gut-train-web/app/SharedDashboard.js`: Overview, Recovery, Nutrition tabs; polls both summary endpoints every 5 sec. The older Nutrition component additionally polls its own endpoints every 2 sec. This is completed-summary refresh, NOT a live HR stream. No during-workout telemetry was added. Watch summaries upload only after explicit per-session opt-in; defaults off. DEMO does not upload. Daily/background uploads were disabled in ActiveSync to remove unconsented publication.
+`gut-train-web/app/SharedDashboard.js`: Overview, Recovery, Nutrition tabs; polls both summary endpoints every 5 sec. The older Nutrition component additionally polls its own endpoints every 2 sec. A separate LiveActivity panel now polls /api/live every 2 sec for live HR/activity. See the current live telemetry addendum below. Watch summaries upload only after explicit per-session opt-in; defaults off. DEMO does not upload. Daily/background uploads were disabled in ActiveSync to remove unconsented publication.
 
-`/api/pace-sessions`: schema-v1 validation, optional feedback, idempotency by mode/sessionId, max200. `/api/sessions`: nutrition logs/confirmed plan. Existing Redis env vars or in-memory fallback. Public shared hackathon site, no user accounts or private read authentication. No secure multi-user association and no watch plan push from dashboard. Do not add HR streaming without a separate explicit sharing choice and clear live/stale/session timestamps.
+`/api/pace-sessions`: schema-v1 validation, optional feedback, idempotency by mode/sessionId, max200. `/api/sessions`: nutrition logs/confirmed plan. Existing Redis env vars or in-memory fallback. Public shared hackathon site, no user accounts or private read authentication. No secure multi-user association and no watch plan push from dashboard. Live sharing now has explicit setup wording and stale/session timestamps; keep that consent visible.
 
 ## Verification
 
-SDK 9.1.0, fenix7pro profile, Java headless, compile type level0. Both production/test PRGs compile. Current suites: PacePilot33, Gut Train25. New tests cover band boundaries, unknown HR, pulse vs steady, low-band dwell/reset, and pause clock exclusion. Initial simulator launch errors/timeouts were resolved during retries: **all33 PacePilot and25 Gut Train tests pass**. Current logs are `tests/controls-simulator-results.txt` under each app. Old baseline logs with29/22 passes apply to older code only. No physical or visual acceptance.
+SDK 9.1.0, fenix7pro profile, Java headless, compile type level0. Both production/test PRGs compile. Current suites: PacePilot35, Gut Train27. New tests cover band boundaries, unknown HR, pulse vs steady, low-band dwell/reset, and pause clock exclusion. Initial simulator launch errors/timeouts were resolved during retries: **all 35 PacePilot and 27 Gut Train tests pass**. Current logs are `tests/live-simulator-results.txt` under each app. Old baseline logs with29/22 passes apply to older code only. No physical or visual acceptance.
 
-Dashboard44 tests pass; production build and local/live HTTP200 checks passed in nutrition/recovery revision. Current watch-only work reran the44 tests. Build commands are in app READMEs. Production/test PRGs and SHA256 fingerprints are under each app's release folder.
+Dashboard 53 tests pass; production build and local/live HTTP200 checks passed in nutrition/recovery revision. Current watch-only work reran the53 tests. Build commands are in app READMEs. Production/test PRGs and SHA256 fingerprints are under each app's release folder.
 
 SDK path: `cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg"`.
 Signing key: `$HOME/.garmin/developer_key.der` (never expose or commit).
@@ -62,7 +62,7 @@ Run monkeydo serially per app with `fenix7pro -t`, only after simulator is actua
 2. Use native menus for task lists and keep START/STOP predictable during workouts. Preserve BACK cancellation, finish confirmation, menu accessibility, and native LIGHT behavior.
 3. Distinguish near-band, above-band, below-band, missing signal, paused, and DEMO with text/icons as well as color. Preserve slow restrained animation; offer an option to disable it. Avoid equating green with medically safe or low HR with a requirement to exercise harder.
 4. Make setup shorter without hiding HR-band review or public-sharing consent. Consider a summary/review page with editable menu items instead of a long sequence, but retain deliberate confirmation.
-5. Make the dashboard visually coherent with both apps; clearly label last-upload time and whether a session is finished. Don't label polling as live sensor streaming.
+5. Make the dashboard visually coherent with both apps; clearly label last-upload time and whether a session is finished. Distinguish the live telemetry panel from completed summaries. Call it near-live, never claim guaranteed realtime latency.
 6. Validate each control path, actual menu rendering, app-switch installed/missing/cancel behavior, cooldown/haptics, sensor loss, pause/resume, finish, opt-in sync failure/retry, and offline history. User has not allowed screenshots; ask only if visual capture becomes necessary, otherwise provide a human test checklist.
 7. Consider a persistent session draft before app switching in a future iteration. Current implementation blocks switching until completion; it does not migrate active state between apps.
 
@@ -78,3 +78,16 @@ Run monkeydo serially per app with `fenix7pro -t`, only after simulator is actua
 ## Completion discipline
 
 Run checks, rebuild release binaries, refresh hashes, sync only changed project folders to checkout, review git diff, commit and push dashboard-and-recovery. A handoff exists proactively because account usage lookup failed; no claim is made that credits are expiring. Do not deploy watch code as though that installs it on a physical Garmin.
+
+## Current live telemetry addendum (supersedes older summary-only notes)
+
+Latest user explicitly requested live HR and activity following. Implemented:
+- Both apps: `source/LiveFeed.mc`, duplicated intentionally because they build independently. Pure LiveFeedPolicy tests verify consent, DEMO suppression, one in-flight request,5 sec rate, and immediate lifecycle changes. LIVE only; setup choice now explicitly says Share live + summary. Sender retains only the latest pending lifecycle packet, not a backlog. Failure does not stop the workout. No guarantee of end-message delivery if app exits/offline.
+- PacePilot: publishLive from timer and button lifecycle changes, filtered/ready HR and progress.
+- Gut Train: publishLive from tick, pause/resume, finish; HR suppressed on stop. Menus stop the session and hide its timer; a long-open menu can yield stale status until the workout view returns.
+- Web: `/api/live`, `lib/live.js`, `LiveActivity.js`, atomic Redis Lua in store.js. Four channels max (two apps × LIVE/DEMO); each holds the most-recent session and 120 samples; samples are not mixed across sessions. Older-session packets and duplicate sequences are ignored; completed session cannot reopen.24 h expiry.
+- Live panel:2 sec polling,1 sec age display, stale threshold20 sec using received/sample timestamps, missing HR gaps in chart, no fake completion. Existing summary refresh still5 sec. At most one polling request in flight;8 sec request timeout.
+- Current checks:35 PacePilot tests,27 Gut Train tests,53 web tests pass. Both watch builds and Next production build pass. Local HTTP smoke verifies both apps active/paused/completed using synthetic DEMO records in explicitly nonpersistent memory. No fake records were posted to production.
+- Website deployed with the new endpoint/panel. User still needs updated release PRGs on watch, phone online, explicit sharing enabled. Hardware end-to-end stream and actual UI appearance remain unverified.
+
+Visual redesign remains Claude's task. New LiveActivity markup/chart is functional scaffolding, not the requested polished design. Improve presentation while preserving timestamps, gaps, consent, and accessibility. For race conditions, preserve atomic EVAL compare/update behavior. For a private product, replace app-only channels with authenticated device/user identity; the current app/mode channels deliberately support one shared demo participant per app/mode.

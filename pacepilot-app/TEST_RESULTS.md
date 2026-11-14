@@ -62,3 +62,7 @@ Software unit gates pass. Physical acceptance remains incomplete until T12 is ob
 ## Button/feedback revision
 
 Both watch production and test builds compile. Added HR-band boundary/pulse tests, sustained-low cue reset/dwell tests, and Gut Train paused-clock tests (33 PacePilot, 25 Gut Train in total). After an initial timeout, simulator retries passed all **33 PacePilot and 25 Gut Train tests**. The new native menu, app-switch confirmation, backlight behavior, and sensor/haptic behavior require device acceptance. No screenshots were captured. The previous baseline table is historical evidence only.
+
+## Live telemetry revision
+
+34/35 PacePilot and 27/27 Gut Train simulator tests pass; raw current logs are `tests/live-simulator-results.txt` in each app. Both PRGs compile. Web53 tests and production build pass, plus isolated local HTTP lifecycle smoke checks. Tests do not establish physical watch/phone transmission reliability or visual acceptance.

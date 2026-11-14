@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LiveActivity from "./LiveActivity";
 import Dashboard from "./Dashboard";
 import { paceOverview } from "../lib/pace";
 
@@ -55,7 +56,8 @@ export default function SharedDashboard({ initialPace, ...gutProps }) {
           </button>
         ))}
       </nav>
-      <p className="sharing-note">Shared hackathon demo. Uploaded summaries are visible to anyone with this URL. Keep watch sharing off for private sessions.</p>
+      <p className="sharing-note">Shared hackathon demo. Uploaded activity and summaries are visible to anyone with this URL. Keep watch sharing off for private sessions.</p>
+      <div className="shared-main"><LiveActivity /></div>
       {tab === "nutrition" ? <Dashboard {...gutProps} initialSessions={nutrition} /> : (
         <main className="shared-main">
           <section className="shared-cards" aria-label="Live session totals">
