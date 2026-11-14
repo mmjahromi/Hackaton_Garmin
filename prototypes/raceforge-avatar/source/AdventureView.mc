@@ -1,0 +1,182 @@
+import Toybox.Graphics;
+import Toybox.Lang;
+import Toybox.Math;
+import Toybox.System;
+import Toybox.Timer;
+import Toybox.WatchUi;
+
+class RaceForgeAdventureView extends WatchUi.View {
+    var flow;
+    var _summit=new RaceForgeSummitRenderer();
+    var _athlete=new RaceForgeAvatarRenderer();
+    var _timer=new Timer.Timer();
+    var _visible=false;
+    var _running=false;
+    var _lastNow=0;
+    var _surface=null;
+    var layoutValid=true;
+    function initialize() { View.initialize(); flow=new RaceForgeAdventureController();
+        flow.restore(new RaceForgeJourneyRepository(new RaceForgeStoragePort())); }
+    function onShow() as Void { _visible=true; _lastNow=System.getTimer(); syncTimer(); }
+    function onHide() as Void { _visible=false; flow.suspend(); syncTimer(); _surface=null; }
+    function shutdown() { _visible=false; flow.stop(); syncTimer(); _surface=null; }
+    function syncTimer() {
+        var active=_visible && flow.screen==:WORKOUT;
+        if(active && !_running) { _lastNow=System.getTimer(); _timer.start(method(:onTick),250,true); _running=true; }
+        else if(!active && _running) { _timer.stop(); _running=false; }
+    }
+    function onTick() as Void {
+        if(!_visible || !_running) { return; }
+        var now=System.getTimer(); flow.step(now-_lastNow); _lastNow=now;
+        syncTimer(); WatchUi.requestUpdate();
+    }
+    function pressSelect() {
+        if(flow.screen==:OPTIONS && flow.option==2) {
+            var lab=new RaceForgeView(); WatchUi.pushView(lab,new RaceForgeDelegate(lab),WatchUi.SLIDE_UP);
+        } else { flow.select(); changed(); }
+    }
+    function pressMove(delta) { flow.move(delta); changed(); }
+    function pressBack() { flow.back(); changed(); }
+    function changed() { syncTimer(); if(_visible) { WatchUi.requestUpdate(); } }
+    function menu() { flow.menu(); changed(); }
+    function text(dc,y,message,color) {
+        var font=Graphics.FONT_XTINY; var height=dc.getFontHeight(font);
+        var dy=130-y; var bottom=y+height-130; if(bottom>dy) { dy=bottom; }
+        var square=125*125-dy*dy;
+        var maximum=square>0 ? (2*Math.sqrt(square)).toNumber() : 0;
+        var label=message;
+        var length=message.length();
+        while(dc.getTextWidthInPixels(label,font)>maximum && length>0) {
+            length-=1; label=message.substring(0,length)+"...";
+        }
+        if(dc.getTextWidthInPixels(label,font)>maximum) { layoutValid=false; }
+        dc.setColor(color,Graphics.COLOR_TRANSPARENT);
+        dc.drawText(dc.getWidth()/2,y,font,label,Graphics.TEXT_JUSTIFY_CENTER);
+    }
+    function button(dc,label) {
+        dc.setColor(0x00AAAA,Graphics.COLOR_TRANSPARENT); dc.fillRoundedRectangle(60,214,140,22,7);
+        text(dc,214,label,Graphics.COLOR_BLACK);
+    }
+    function timeText(seconds) {
+        var s=seconds.toNumber(); return (s/60).toString()+":"+(s%60).format("%02d");
+    }
+    function onUpdate(dc as Graphics.Dc) as Void {
+        if(_surface==null) {
+            var ref=Graphics.createBufferedBitmap({:width=>dc.getWidth(),:height=>dc.getHeight()});
+            _surface=ref.get();
+        }
+        var surface=_surface as Graphics.BufferedBitmap;
+        drawScreen(surface.getDc()); dc.drawBitmap(0,0,surface);
+    }
+    function drawScreen(dc) {
+        dc.setColor(Graphics.COLOR_BLACK,Graphics.COLOR_BLACK); dc.clear(); layoutValid=true;
+        var screen=flow.screen; var journey=flow.journey;
+        var items=journey.missions(); var mission=items[flow.selected];
+        text(dc,15,flow.mode==:DEMO ? "DEMO" : "LIVE",0xFFAA00);
+        if(screen==:SETUP) {
+            var step=flow.setupStep; var p=flow.setupProfile;
+            text(dc,46,"Your 7-day adventure",Graphics.COLOR_WHITE);
+            text(dc,75,["Fitness baseline","Available activity days","Preferred activity","Daily time available"][step],0x00AAAA);
+            var choice=step==0 ? ["Beginner","Intermediate","Experienced"][p["level"]] :
+                (step==1 ? p["days"].toString()+" days" :
+                (step==2 ? ["Walking","Running","Mixed"][p["activity"]] : ["Short","Medium","Long"][p["time"]]));
+            text(dc,113,choice,Graphics.COLOR_WHITE);
+            text(dc,148,"UP / DOWN · choose",Graphics.COLOR_LT_GRAY);
+            text(dc,177,flow.status.length()>0 ? flow.status : "Illustrative, gentle plan",0xFFAA00);
+            button(dc,step==3 ? "START · create week" : "START · next");
+        } else if(screen==:OPTIONS) {
+            text(dc,50,"RaceForge options",Graphics.COLOR_WHITE);
+            for(var o=0;o<3;o+=1) { text(dc,92+o*32,["Workout source","Personalize week","Avatar pose lab"][o],o==flow.option ? 0xFFAA00 : Graphics.COLOR_WHITE); }
+            button(dc,"START · choose");
+        } else if(screen==:SOURCE) {
+            text(dc,58,"Choose workout source",Graphics.COLOR_WHITE);
+            text(dc,98,flow.option==0 ? "DEMO · synthetic" : "LIVE · device sensors",0xFFAA00);
+            text(dc,133,flow.option==0 ? "Progress stays temporary" : "No synthetic fallback",Graphics.COLOR_WHITE);
+            text(dc,166,"UP / DOWN · change",Graphics.COLOR_LT_GRAY); button(dc,"START · confirm");
+        } else if(screen==:BAND) {
+            text(dc,59,"Manual effort band",Graphics.COLOR_WHITE);
+            text(dc,97,(110+flow.bandChoice*10).toString()+" - "+(130+flow.bandChoice*10).toString()+" bpm",0xFFAA00);
+            text(dc,130,"Illustrative, not personal",Graphics.COLOR_LT_GRAY);
+            text(dc,164,"UP / DOWN · choose",Graphics.COLOR_WHITE); button(dc,"START · confirm");
+        } else if(screen==:CHECKIN) {
+            var step=flow.checkStep; var choice=flow.checkChoice;
+            text(dc,57,["How did it feel?","How are you feeling?","Fueling as planned?"][step],Graphics.COLOR_WHITE);
+            text(dc,105,step==0 ? ["Easy","Moderate","Hard"][choice] :
+                (step==1 ? ["Fresh","Moderate","Very fatigued"][choice] : ["Completed","Not completed","Not applicable"][choice]),0xFFAA00);
+            text(dc,147,"Your report · stored locally",Graphics.COLOR_LT_GRAY);
+            text(dc,175,"UP / DOWN · choose",Graphics.COLOR_WHITE); button(dc,step==2 ? "START · save" : "START · next");
+        } else if(screen==:ADJUST) {
+            text(dc,48,"Adjust this mission",Graphics.COLOR_WHITE);
+            for(var a=0;a<5;a+=1) { text(dc,78+a*25,["Keep original","Mark missed","Shorten optional","Move to free day","Skip and resume"][a],a==flow.option ? 0xFFAA00 : Graphics.COLOR_WHITE); }
+            button(dc,"START · review");
+        } else if(screen==:ADJUST_CONFIRM) {
+            text(dc,55,"Proposed change",Graphics.COLOR_WHITE);
+            text(dc,91,flow.proposal["why"],0x00AAAA);
+            text(dc,125,"Past achievements stay",Graphics.COLOR_WHITE);
+            text(dc,157,flow.endYes && flow.proposal["allowed"] ? "CONFIRM change" : "KEEP original",0xFFAA00);
+            text(dc,185,"UP / DOWN · choose",Graphics.COLOR_LT_GRAY); button(dc,"START · confirm");
+        } else if(screen==:HOME) {
+            text(dc,38,journey.isComplete() ? (journey.completed()==items.size() ? "Week complete" : "Week reviewed") : "Stay active · 7 days",Graphics.COLOR_WHITE);
+            _summit.draw(dc,journey);
+            text(dc,171,journey.completed().toString()+" / "+items.size().toString()+" checkpoints",0x00AAAA);
+            text(dc,193,flow.repository!=null && flow.repository.error.length()>0 ? flow.repository.error : items[journey.nextIndex()]["title"],Graphics.COLOR_WHITE);
+            button(dc,"START · missions");
+        } else if(screen==:LIST) {
+            text(dc,48,"Your weekly trail",Graphics.COLOR_WHITE);
+            for(var row=0;row<3;row+=1) {
+                var index=(flow.selected+row)%items.size(); var m=items[index]; var y=85+row*36;
+                if(row==0) { dc.setColor(0x005555,Graphics.COLOR_TRANSPARENT); dc.fillRoundedRectangle(35,y-2,190,30,6); }
+                text(dc,y,(index+1).toString()+". "+m["title"],m["status"].equals("complete") ? 0x00AAAA : Graphics.COLOR_WHITE);
+            }
+            text(dc,193,items[flow.selected]["status"]+" · UP/DOWN",Graphics.COLOR_LT_GRAY); button(dc,"START · preview");
+        } else if(screen==:PREVIEW) {
+            text(dc,56,mission["title"],Graphics.COLOR_WHITE);
+            var marker=mission["activityType"].equals("summit");
+            text(dc,88,marker ? "Weekly check-in" : "Day "+mission["plannedDay"].toString()+" · "+timeText(mission["durationTargetSec"]),0x00AAAA);
+            text(dc,116,mission["effortTarget"],Graphics.COLOR_WHITE);
+            text(dc,143,marker ? "After your planned missions" : "Band "+mission["hrLow"].toString()+"-"+mission["hrHigh"].toString()+" (manual)",Graphics.COLOR_LT_GRAY);
+            text(dc,171,marker ? "Not an extra workout" : (flow.mode==:DEMO ? "Demo: 180s at 4x" : "UP/DOWN: change band"),0xFFAA00);
+            text(dc,192,flow.status.length()>0 ? flow.status : "State: "+mission["status"],Graphics.COLOR_WHITE);
+            button(dc,marker ? "START · celebrate" : "START · begin");
+        } else if(screen==:WORKOUT || screen==:PAUSE) {
+            var bridge=flow.session; bridge.refresh(); var model=bridge.avatar;
+            text(dc,38,mission["title"],Graphics.COLOR_WHITE);
+            _athlete.draw(dc,model,80,61,100,100);
+            text(dc,165,model.dataText,0x00AAAA);
+            text(dc,187,model.headline,Graphics.COLOR_WHITE);
+            text(dc,209,timeText(bridge.controller.sessionSec)+"  ["+mission["hrLow"].toString()+"-"+mission["hrHigh"].toString()+"]",Graphics.COLOR_WHITE);
+            dc.setColor(0x005555,Graphics.COLOR_TRANSPARENT); dc.fillRectangle(70,230,120,2);
+            dc.setColor(0x00AAAA,Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(70,230,(120*bridge.controller.sessionSec/bridge.controller.config[:goalSec]).toNumber(),2);
+            text(dc,234,screen==:PAUSE ? "RESUME" : (bridge.controller.decision[:canResumeRun] ? "UP run" : "PAUSE"),Graphics.COLOR_LT_GRAY);
+        } else if(screen==:END_CONFIRM) {
+            text(dc,75,"End this mission?",Graphics.COLOR_WHITE);
+            text(dc,108,"Earlier progress stays",0x00AAAA);
+            text(dc,140,flow.endYes ? "YES · end" : "NO · keep paused",0xFFAA00);
+            text(dc,175,"UP / DOWN · change",Graphics.COLOR_LT_GRAY); button(dc,"START · confirm");
+        } else if(screen==:SUMMARY) {
+            var s=flow.session.controller.summary;
+            text(dc,45,s[:goalMet] ? "Mission complete" : "Session ended",Graphics.COLOR_WHITE);
+            flow.session.refresh();
+            _athlete.draw(dc,flow.session.avatar,100,65,60,60);
+            text(dc,130,"Elapsed "+timeText(s[:sessionSec]),Graphics.COLOR_WHITE);
+            text(dc,152,"Moving estimate "+timeText(s[:movingSec]),0x00AAAA);
+            text(dc,174,"Unknown "+timeText(s[:unknownMotionSec]),Graphics.COLOR_LT_GRAY);
+            text(dc,194,flow.mode==:DEMO ? "Demo · not real exercise" : "MENU: save, skip check-in",0xFFAA00);
+            button(dc,flow.status.length()>0 ? flow.status : "START · check-in");
+        }
+    }
+}
+
+class RaceForgeAdventureDelegate extends WatchUi.BehaviorDelegate {
+    var view;
+    function initialize(v) { BehaviorDelegate.initialize(); view=v; }
+    function onSelect() as Boolean { view.pressSelect(); return true; }
+    function onNextPage() as Boolean { view.pressMove(1); return true; }
+    function onPreviousPage() as Boolean { view.pressMove(-1); return true; }
+    function onBack() as Boolean {
+        if(view.flow.screen==:HOME) { return false; }
+        view.pressBack(); return true;
+    }
+    function onMenu() as Boolean { view.menu(); return true; }
+}
