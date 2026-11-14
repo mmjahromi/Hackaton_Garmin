@@ -87,9 +87,9 @@ module Presenter {
             line(dc, 58, "Ready?", small, white);
             line(dc, 92, (reviewGoal / 60).toString() + " min", large, accent);
             line(dc, 126, "HR band " + shown(v.config[:hrLowBpm]) + "-" + shown(v.config[:hrHighBpm]) + " bpm", tiny, white);
-            line(dc, 150, v.share ? "Sharing: public demo site" : "Sharing: off", tiny, grey);
+            line(dc, 150, v.share ? "Live sharing: ON (public)" : "Live sharing: off", tiny, v.share ? accent : grey);
             line(dc, 187, "START begin / BACK", tiny, white);
-            line(dc, 213, "Hold UP to change", tiny, grey);
+            line(dc, 213, v.share ? "DOWN turns sharing off" : "DOWN shares to dashboard", tiny, grey);
             return;
         }
         if (v.ready()) {

@@ -134,3 +134,23 @@ function sharingOffAnswerDoesNotLoopInTests(logger as Logger) as Boolean {
     v.shutdown();
     return true;
 }
+
+(:test)
+function reviewScreenTogglesSharing(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    v.config = Config.defaults(); v.mode = :DEMO;
+    var dc = new DrawingProbe();
+    v.adjust(1);                          // home: no effect
+    Test.assert(!v.share);
+    v.select();                           // review
+    Test.assert(!v.share);                // off by default, every session
+    v.adjust(1); Presenter.render(dc, v);
+    Test.assert(v.share);
+    v.adjust(-1); Presenter.render(dc, v);
+    Test.assert(!v.share);
+    v.adjust(1);
+    v.select();                           // begin with sharing on
+    Test.assert(v.controller.lifecycle == :ACTIVE && v.share);
+    v.shutdown();
+    return true;
+}

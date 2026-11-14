@@ -243,6 +243,9 @@ class PacePilotView extends WatchUi.View {
             if (stage == 5) { soreness = (soreness + direction + 3) % 3; }
             if (stage == 6) { todayChoice = 1 - todayChoice; }
             if (stage == 7) { share = !share; }
+            // On the short review screen UP/DOWN is the sharing switch, so
+            // live updates can be turned on without the step-by-step settings.
+            if (stage == 8 && quick && planScreen == null) { share = !share; }
             if (stage == 3) {
                 var goal = config[:goalSec] + direction * 60;
                 if (goal >= 60 && goal <= 3600) { config[:goalSec] = goal; }
