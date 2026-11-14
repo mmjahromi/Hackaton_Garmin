@@ -1,0 +1,14 @@
+bin/
+*.prg
+*.prg.debug.xml
+*.debug.xml
+.DS_Store
+*.log
+developer_key*
+*.der
+*.pem
+*.key
+*.p12
+*.pfx
+.env
+.env.*
