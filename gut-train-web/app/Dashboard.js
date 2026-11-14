@@ -199,7 +199,7 @@ export default function Dashboard({ initialSessions, initialDays = [], initialGo
         </p>
         <p className={connected ? "live" : "live off"} role="status">
           <span className="dot" aria-hidden="true" />
-          {connected ? "Live from the watch" : "Connection lost, retrying"}
+          {connected ? "Dashboard online" : "Dashboard offline, retrying"}
         </p>
       </header>
 

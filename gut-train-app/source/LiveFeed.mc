@@ -11,6 +11,9 @@ module LiveFeedPolicy {
 }
 // At most one live request in flight. No backlog of sensor readings.
 class LiveFeed {
+    var stress=null;
+    var stressAt=null;
+    var stressCheckedMs=null;
     var busy=false;
     var lastAt=null;
     var lastStatus="";
@@ -34,7 +37,38 @@ class LiveFeed {
         if (!LiveFeedPolicy.due(consent,body["mode"],busy,System.getTimer(),lastAt,!body["status"].equals(lastStatus))) { return; }
         transmit(body);
     }
+    function addStress(body, nowMs, now) {
+        body["stress"]=null; body["stressAt"]=null;
+        if (!body["status"].equals("active")) { return; }
+        if (StressPolicy.shouldRefresh(nowMs, stressCheckedMs)) {
+            // Cache missing/failed reads too, so they cannot trigger rapid retries.
+            stressCheckedMs=nowMs; stress=null; stressAt=null;
+            readStress(now);
+        }
+        // Revalidate the timestamp in case the wall clock was corrected backwards.
+        if (StressPolicy.valid(stress, stressAt, now)) {
+            body["stress"]=stress; body["stressAt"]=stressAt;
+        }
+    }
+    function readStress(now) {
+        if (!(Toybox has :SensorHistory) || !(Toybox.SensorHistory has :getStressHistory)) { return; }
+        try {
+            var history=Toybox.SensorHistory.getStressHistory({
+                :period=>1, :order=>Toybox.SensorHistory.ORDER_NEWEST_FIRST});
+            if (history == null) { return; }
+            var sample=history.next();
+            if (sample == null || !(sample has :data) || !(sample has :when) ||
+                sample.data == null || sample.when == null) { return; }
+            var at=sample.when.value();
+            if (StressPolicy.valid(sample.data, at, now)) {
+                stress=sample.data.toNumber(); stressAt=at;
+            }
+        } catch(e) {
+            // Unavailable history must not prevent the existing live packet.
+        }
+    }
     function transmit(body) {
+        addStress(body,System.getTimer(),Time.now().value());
         busy=true;lastAt=System.getTimer();lastStatus=body["status"];
         sequence++;body["sequence"]=sequence;
         status="Sending live data";

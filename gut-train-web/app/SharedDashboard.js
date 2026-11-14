@@ -16,7 +16,7 @@ export default function SharedDashboard({ initialPace, ...gutProps }) {
   const [tab, setTab] = useState("overview");
   const [pace, setPace] = useState(initialPace);
   const [nutrition, setNutrition] = useState(gutProps.initialSessions);
-  const [status, setStatus] = useState("Ready");
+  const [status, setStatus] = useState("Dashboard online");
   useEffect(() => {
     let cancelled = false;
     async function refresh() {
@@ -30,10 +30,10 @@ export default function SharedDashboard({ initialPace, ...gutProps }) {
         if (!cancelled) {
           setPace(activity.sessions);
           setNutrition(fuel.sessions);
-          setStatus("Connected");
+          setStatus("Dashboard online");
         }
       } catch {
-        if (!cancelled) setStatus("Connection unavailable — showing last update");
+        if (!cancelled) setStatus("Dashboard offline, showing the last update");
       }
     }
     refresh();

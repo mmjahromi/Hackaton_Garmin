@@ -1067,6 +1067,15 @@ tr.fresh td {
 .shared-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .shared-table th, .shared-table td { padding: 14px 12px; text-align: left; border-bottom: 1px solid #a9988444; vertical-align: top; }
 .shared-table summary { cursor: pointer; margin-top: 6px; }
+.watch-connections { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.watch-connection { display: flex; align-items: flex-start; gap: 8px; flex: 1 1 220px; min-width: 0; font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+.watch-connection .dot { flex: 0 0 8px; margin-top: 6px; }
+.watch-connection.off .dot { background: var(--fix); animation: none; }
+.watch-connection strong { color: var(--ink); font-weight: 600; }
+.watch-connection-label { margin-left: 8px; }
+.watch-connection-detail, .stress-fact small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 4px; }
+.live-workout { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.live-workout .shared-facts { grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr)); }
 @media (max-width: 640px) {
   .shared-header { display: block; }
   .shared-header p[role="status"] { margin-top: 12px; }
