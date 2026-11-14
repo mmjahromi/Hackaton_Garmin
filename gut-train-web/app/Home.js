@@ -160,6 +160,21 @@ export default function Home() {
       {offline && <p className="sa-banner warn" role="status">Dashboard offline. Showing the last update; retrying.</p>}
       {message && <p className="error" role="alert">{message}</p>}
 
+      <section className="block" aria-labelledby="settings-h">
+        <div className="block-head"><h2 id="settings-h">User settings</h2></div>
+        <div className="form-actions">
+          <button type="button" onClick={() => startEditing(profile || EMPTY_PROFILE)}>Profile and preferences</button>
+          <button type="button" disabled={busy || demo} aria-pressed={profile?.shareToWatch === true}
+            onClick={async () => {
+              if (!profile) { startEditing(EMPTY_PROFILE); return; }
+              await send("/api/profile", "PUT", { ...profile, shareToWatch: !profile.shareToWatch });
+            }}>{profile?.shareToWatch ? "Stop sharing plans with watch" : "Share plans with watch"}</button>
+        </div>
+        <p>Plan sharing: {profile?.shareToWatch ? "On" : "Off"}. Open PacePilot and choose “Get today’s plan” to fetch your suggestion.</p>
+        <p className="fine">To send activity back to this dashboard, separately enable “Share live + summary” on the watch before starting a LIVE workout. This button does not remotely enable watch uploads. A paired phone with Internet is required. Shared activity is public on this hackathon demo.</p>
+        {demo && <p className="fine">Switch to Your data to change real watch sharing.</p>}
+      </section>
+
       {/* 1. What is my goal? */}
       <section className="block" aria-labelledby="goal-h">
         <div className="block-head">

@@ -54,3 +54,7 @@ The configured site, [gut-train-web.vercel.app](https://gut-train-web.vercel.app
 Latest recorded results: 80 PacePilot simulator tests, 35 Gut Train simulator tests, and 83 dashboard tests; the separate Redis test has earlier recorded passing evidence. PacePilot's80 tests were freshly executed for weekly integration; the Gut Train/dashboard counts remain previously recorded evidence. The new PacePilot weekly log matches the current suite; older debug logs are historical. [STATUS.md](STATUS.md#verification-evidence) distinguishes reports, logs, source inventory, release checksums, and unverified hardware behavior.
 
 [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md), [DEBUG_REPORT.md](DEBUG_REPORT.md), and the prep-guide PDF are historical. Use current app READMEs for controls. Supporting folders `breathe-app/` and `starter-app/` remain earlier examples; `time-display-game/` is unrelated.
+
+## Final submission and deployment
+
+See [FINAL_SUBMISSION.md](FINAL_SUBMISSION.md) for the pitch, live link and scope. Deploy the dashboard with `sh deploy-dashboard.sh` from this repository root.
