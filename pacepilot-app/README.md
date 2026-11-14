@@ -2,7 +2,148 @@
 
 Offline, experimental run/walk coaching for Garmin Fenix 7 Pro. The default goal is 20 unpaused session minutes. Walking counts toward the goal. Estimated moving time is tracked separately. The illustrative HR band is 120–140 bpm and must be explicitly confirmed or adjusted before each session.
 
-## Build and run
+## The problem
+
+An everyday runner can set out for an easy session and find the effort rising on a hill or after several minutes. A heart-rate number alone leaves them to decide when to ease off, walk, or try running again. Walking can also feel like abandoning the session.
+
+PacePilot turns sustained effort into one clear suggestion on the wrist. Running and walking both count toward a manageable session goal. The user can request a walk, pause, or end at any time.
+
+## What the prototype achieves
+
+- Suggests **Run easy**, **Ease off**, **Walk break**, or **Try running?** from sustained HR evidence.
+- Uses a manually chosen HR band, with a default 20-minute unpaused session goal.
+- Smooths brief HR spikes and requires fresh evidence after signal loss or resume.
+- Combines qualified GPS speed and accelerometer evidence to estimate movement.
+- Adds “Climb likely” context when a sustained pressure trend qualifies.
+- Shows missing, stale, unsupported, and failed sensor states.
+- Saves one local LIVE session summary with session time, estimated moving time, unknown-motion time, HR coverage, and walk-prompt count.
+- Runs a reproducible, clearly labeled demo through the same filtering and coaching rules.
+
+The intended benefit is making an easy run/walk session easier to understand and finish. User benefit and long-term habit change have not yet been measured.
+
+### How a suggestion changes
+
+| Condition | App response |
+| --- | --- |
+| HR stays above the selected upper bound for 15 seconds | Suggest Ease off |
+| High HR continues for 60 seconds | Suggest Walk break |
+| At least 60 seconds in the walk state, with HR at or below the recovery threshold for 30 seconds | Offer running again, provided movement is not explicitly STILL |
+| The user accepts a valid offer with UP | Return to Run easy |
+| HR is missing or still reacquiring | Show HR unavailable; walk if needed |
+| START pauses the session | Freeze goal progress and coaching timers |
+| The unpaused goal is reached | Show completion and the summary |
+
+The recovery threshold is the chosen upper HR bound minus 5 bpm. UNKNOWN movement permits an offer with uncertainty displayed. The example HR band is illustrative and requires explicit confirmation or adjustment.
+
+## Quick demo
+
+1. Load the app into the Fenix 7 Pro simulator using the VS Code steps below.
+2. On Choose mode, press DOWN to select Replay standard.
+3. Press START through the example low HR, high HR, and session-goal screens.
+4. At Confirm settings, press START again.
+5. Watch the **DEMO 4x** sequence finish in about 45 real seconds.
+
+| Virtual time | Expected action |
+| --- | --- |
+| 36 seconds | Ease off |
+| 81 seconds | Walk break |
+| 141 seconds | Offer running |
+| 160 seconds | Scripted acceptance returns to Run easy |
+| 180 seconds | Goal met |
+
+The replay uses a three-minute virtual goal. The user-acceptance event at second 160 is scripted for the demonstration. Choose Replay HR loss to see missing-data behavior.
+
+## Run in Visual Studio Code
+
+### 1. Install the tools
+
+1. Install Visual Studio Code and Garmin's official **Monkey C** extension, identifier `garmin.monkey-c`.
+2. Install Garmin Connect IQ SDK Manager. Install and select **SDK 9.1.0**, the version used for this build.
+3. Install the **Fenix 7 Pro** device package, identifier `fenix7pro`.
+4. Open the Command Palette with Cmd+Shift+P on macOS or Ctrl+Shift+P on Windows/Linux.
+5. Run **Monkey C: Verify Installation** and resolve any reported Java, SDK, or signing-key setup issue.
+
+The command names and launch configuration below were checked against the locally installed Garmin Monkey C extension 1.1.3. SDK setup is described in [Garmin's getting-started guide](https://developer.garmin.com/connect-iq/connect-iq-basics/getting-started/).
+
+### 2. Open the correct folder
+
+For a fresh checkout:
+
+```sh
+git clone --branch dashboard-and-recovery https://github.com/mmjahromi/Hackaton_Garmin.git
+cd Hackaton_Garmin/pacepilot-app
+code .
+```
+
+Alternatively, use **File > Open Folder** and select `pacepilot-app` inside your existing checkout. The VS Code folder root should contain `manifest.xml` and `monkey.jungle`. The repository contains multiple prototypes, so opening this specific folder selects PacePilot's build configuration.
+
+### 3. Set your signing key
+
+Run **Monkey C: Generate a Developer Key** if you need a key. Keep it outside the repository. In VS Code User Settings, set **Monkey C: Developer Key Path** to your own key's absolute path.
+
+For this Mac, the existing key is `~/.garmin/developer_key.der`; expand `~` to the full user path in the VS Code setting. Each teammate should use their own local path.
+
+Set **Monkey C: Type Check Level** to **Off** for this project's dynamic dictionaries, matching the verified `build.sh` compiler setting. Keep **Monkey C: Jungle Files** set to `monkey.jungle`.
+
+### 4. Add launch configurations
+
+If VS Code has not generated a Monkey C launch configuration, create `.vscode/launch.json` inside `pacepilot-app` with:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "monkeyc",
+      "request": "launch",
+      "name": "Run PacePilot",
+      "device": "fenix7pro",
+      "stopAtLaunch": false
+    },
+    {
+      "type": "monkeyc",
+      "request": "launch",
+      "name": "Test PacePilot",
+      "device": "fenix7pro",
+      "runTests": true
+    }
+  ]
+}
+```
+
+### 5. Build and launch
+
+1. Open **Run and Debug** in VS Code.
+2. Select **Run PacePilot** and press **F5**.
+3. Select Fenix 7 Pro if the extension requests a device.
+4. Wait for compilation and the Connect IQ simulator to open.
+5. Use the simulator's watch buttons to complete setup and start LIVE or DEMO.
+
+You can also run **Monkey C: Build Current Project** from the Command Palette. For a device-targeted build, use **Monkey C: Build for Device** and choose `fenix7pro`.
+
+### 6. Run the unit tests
+
+Select **Test PacePilot** in Run and Debug and press F5, or run **Monkey C: Run Tests** from the Command Palette and select the Fenix 7 Pro target when prompted.
+
+Read the test output in VS Code's Debug Console/Output panels. The verified baseline is **29 passed, 0 failed, 0 errors**. These tests run the production Monkey C filtering, engine, controller, storage boundaries, and rendering/control paths.
+
+The VS Code UI workflow is documented from the installed extension's commands and schema. The observed build/test results were obtained through the SDK command-line tools; the VS Code UI workflow itself has not been exercised in this session.
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Missing SDK or Java | Run Monkey C: Verify Installation and select SDK 9.1.0 in SDK Manager |
+| Fenix 7 Pro unavailable | Install the `fenix7pro` device package |
+| Signing-key error | Set your own absolute developer-key path and confirm the file exists |
+| Wrong app builds | Open `pacepilot-app` as the VS Code folder root |
+| Simulator stops accepting loads | Close the simulator fully, reopen it, and launch again |
+| LIVE shows unavailable readings | Sensor availability depends on the device/simulator inputs; choose the labeled replay for deterministic testing |
+| App is waiting in setup | Advance all settings with START, then confirm on the final screen |
+| Type-check errors with a different workspace configuration | Match this project's verified Type Check Level Off setting |
+| macOS shell script fails on another OS | Use the VS Code workflow or invoke the installed SDK's platform-specific compiler/runner scripts |
+
+## Build and run from a terminal
 
 Verified compiler: Connect IQ SDK 9.1.0. Installed device identifier: `fenix7pro`, round 260 × 260, device profile API 5.2. Manifest minimum API: 3.2.0. Runtime capabilities are checked where needed. No network or phone dependency.
 
