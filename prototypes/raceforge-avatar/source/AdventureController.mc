@@ -54,6 +54,7 @@ class RaceForgeAdventureController {
         liveJourney=fresh;
         demoJourney=new RaceForgeWeeklyJourney(RaceForgeWeeklyPlan.generate(setupProfile));
         journey=mode==:LIVE ? liveJourney : demoJourney;
+        selected=journey.nextIndex();
         screen=:HOME; status="";
     }
     function marker() {
