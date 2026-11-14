@@ -7,6 +7,7 @@ import { normalizeMeal, mealsOn, normalizeBeat } from './meals.js';
 import { watchConfig, demoWatchConfig } from './watchConfig.js';
 import { demoProfile, demoSessions, demoMeals } from './demo.js';
 import { loadOverview, resolveToday } from './overview.js';
+import { normalizePaceSession } from './pace.js';
 
 const TODAY = '2026-11-14'; // a Saturday
 const ALL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -204,4 +205,20 @@ test('the demo plan for the watch is always marked as a demo', () => {
   assert.ok(config.suggestion.reason.length <= 60);
   // The real route never marks a plan as demo, and never serves one without consent.
   assert.equal(watchConfig(profile({ shareToWatch: true }), plan([session(-1)])).demo, undefined);
+});
+
+test('workout intake from PacePilot is validated and totalled for today', async () => {
+  const base = { schemaVersion: 1, mode: 'LIVE', goalMet: false, sessionId: 5, goalSec: 1200, sessionSec: 600, movingSec: 500, unknownMotionSec: 0, hrValidSec: 500, walkPromptCount: 0, endedAt: 700 };
+  const saved = normalizePaceSession({ ...base, fluidMl: 300, carbsG: 25 });
+  assert.deepEqual([saved.fluidMl, saved.carbsG], [300, 25]);
+  assert.equal('fluidMl' in normalizePaceSession(base), false);
+  for (const bad of [{ fluidMl: -1 }, { carbsG: 12.5 }, { fluidMl: '300' }, { carbsG: 99999 }]) assert.throws(() => normalizePaceSession({ ...base, ...bad }));
+  const store = {
+    getProfile: async () => profile(), listDecisions: async () => [], listMeals: async () => [],
+    listPaceSessions: async () => [session(0, { fluidMl: 300, carbsG: 25 }), session(-1, { fluidMl: 900 })],
+    listDays: async () => [], listLive: async () => [], listBeats: async () => [],
+    listSessions: async () => [{ at: Date.parse(TODAY + 'T10:00:00Z') / 1000, fluidMl: 150, carbsG: 50, demo: false }, { at: Date.parse(TODAY + 'T11:00:00Z') / 1000, fluidMl: 999, carbsG: 999, demo: true }],
+  };
+  const real = await loadOverview(store, { demo: false, today: TODAY, now: 1 });
+  assert.deepEqual(real.workoutIntake, { fluidMl: 450, carbsG: 75 });
 });

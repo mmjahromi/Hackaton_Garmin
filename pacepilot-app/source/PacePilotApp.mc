@@ -10,6 +10,9 @@ class PacePilotApp extends Application.AppBase {
     function initialize() { AppBase.initialize(); }
     function getInitialView() {
         view = new PacePilotView();
+        // The app opens on its "press START to open" screen. Tests build the
+        // view directly and skip it.
+        view.activated = false;
         return [view, new Delegate(view)];
     }
     function onStop(state) as Void { if (view != null) { view.shutdown(); } }
@@ -44,6 +47,18 @@ class PacePilotView extends WatchUi.View {
     var planGoalSec = null;
     var planId = null;
     var planSync = new PlanSync();
+    // First screen after tapping the app: nothing happens until START.
+    var activated = true;
+    var autoLink = true;       // reach the dashboard on activation (off in tests)
+    var splashIcon = null;
+    // Fuelling inside a workout: a drink cue and one-press logging from the
+    // menu, so a long session does not need a second app.
+    var drinkMode = 0;         // 0 auto, 1 off, 2/3/4 = every 10/15/20 min
+    var fluidMl = 0;
+    var carbsG = 0;
+    var lastDrinkSec = 0;
+    var drinkDue = false;
+    var drinkCueId = -1000;
     var planDemo = false;      // the accepted plan came from the demo data
     var linkTried = false;     // connect to the dashboard once per launch
     var demoTried = false;
@@ -85,9 +100,20 @@ class PacePilotView extends WatchUi.View {
             timer = new Timer.Timer();
             timer.start(method(:onTick), 1000, true);
         }
-        // Opening the app starts by reaching the dashboard. It never blocks:
-        // BACK or START dismisses it, and the app works the same offline.
-        if (!linkTried && ready() && stage == -1) { linkTried = true; requestPlan(); }
+    }
+    // START on the opening screen. Activating the app starts by reaching the
+    // dashboard. That never blocks: BACK or START dismisses it, and the app
+    // works the same offline.
+    function activate() {
+        activated = true;
+        if (!linkTried && autoLink) { linkTried = true; requestPlan(); }
+        syncAvatarTimer(); WatchUi.requestUpdate();
+    }
+    function splash() {
+        if (splashIcon == null) {
+            try { splashIcon = WatchUi.loadResource(Rez.Drawables.SplashIcon); } catch (e) { splashIcon = null; }
+        }
+        return splashIcon;
     }
     function onHide() as Void {
         avatarVisible = false;
@@ -117,6 +143,7 @@ class PacePilotView extends WatchUi.View {
         controller.sessionId = Time.now().value();
         origin = System.getTimer(); lastReal = origin; virtualMs = 0;
         lowGate = new LowBandGate(); alerts = new AlertService(); summaryPage = 0; feedbackStage = 0; effort = 1; routine = 0;
+        fluidMl = 0; carbsG = 0; lastDrinkSec = 0; drinkDue = false;
         controller.dispatch(:START); controller.tick(0);
     }
     function onTick() as Void {
@@ -140,9 +167,21 @@ class PacePilotView extends WatchUi.View {
             }
             lastReal = realNow;
             signal(realNow);
+            drinkCue(realNow);
         }
         publishLive();
         syncAvatarTimer(); WatchUi.requestUpdate();
+    }
+    // Raises the drink cue once when the chosen interval has passed since
+    // the last logged drink. It clears when a drink is logged.
+    function drinkCue(now) {
+        if (controller.lifecycle != :ACTIVE || drinkDue) { return; }
+        var every = Fuel.intervalSec(drinkMode, controller.config[:goalSec]);
+        if (Fuel.due(controller.sessionSec, lastDrinkSec, every)) {
+            drinkDue = true;
+            alerts.emit(drinkCueId, :DRINK, now);
+            drinkCueId--;
+        }
     }
     function publishLive() {
         if (controller == null || controller.lifecycle == :READY) { return; }
@@ -152,7 +191,8 @@ class PacePilotView extends WatchUi.View {
           "sessionId"=>c.sessionId,"status"=>state,"elapsedSec"=>c.sessionSec.toNumber(),
           "goalSec"=>c.config[:goalSec],"movingSec"=>c.movingSec.toNumber(),
           "heartRate"=>state.equals("active") && f[:hrReady] ? f[:hrBpm] : null,
-          "speedMps"=>state.equals("active") ? f[:speedMps] : null},share);
+          "speedMps"=>state.equals("active") ? f[:speedMps] : null,
+          "carbsG"=>carbsG,"fluidMl"=>fluidMl},share);
     }
     function signal(now) {
         var band=controller.lifecycle == :ACTIVE ? HrFeedback.state(controller.features[:hrBpm],controller.features[:hrReady],controller.config[:hrLowBpm],controller.config[:hrHighBpm]) : :UNKNOWN;
@@ -165,6 +205,7 @@ class PacePilotView extends WatchUi.View {
         }
     }
     function select() {
+        if (!activated) { activate(); return; }
         if (historyIndex >= 0) { historyIndex = -1; syncAvatarTimer(); WatchUi.requestUpdate(); return; }
         if (endConfirm) {
             if (endYes) {
@@ -197,6 +238,8 @@ class PacePilotView extends WatchUi.View {
                 // Lets the dashboard mark its suggestion as done. Added after
                 // the local save so the stored record keeps its schema.
                 if (planId != null) { controller.summary[:planId] = planId; }
+                controller.summary[:fluidMl] = fluidMl;
+                controller.summary[:carbsG] = carbsG;
                 if (mode == :LIVE && next != null) {
                     config[:goalSec] = next;
                     configSaved = storage.saveConfig(config);
@@ -217,6 +260,7 @@ class PacePilotView extends WatchUi.View {
         syncAvatarTimer(); WatchUi.requestUpdate();
     }
     function adjust(direction) {
+        if (!activated) { return; }
         if (historyIndex >= 0) {
             var records = storage.history();
             if (records.size() > 0) { historyIndex = (historyIndex + direction + records.size()) % records.size(); }
@@ -262,10 +306,12 @@ class PacePilotView extends WatchUi.View {
         syncAvatarTimer(); WatchUi.requestUpdate();
     }
     function menu() {
+        if (!activated) { return; }
         var m=new WatchUi.Menu2({:title=>"PacePilot tasks"});
         if (ready()) {
             m.addItem(new WatchUi.MenuItem("Get today's plan", "From your dashboard", :plan, {}));
             m.addItem(new WatchUi.MenuItem("Change settings", "Goal, HR band, sharing", :setup, {}));
+            m.addItem(new WatchUi.MenuItem("Drink reminders", Fuel.modeLabel(drinkMode), :drinkmode, {}));
             m.addItem(new WatchUi.MenuItem("Local history", null, :history, {}));
             m.addItem(new WatchUi.MenuItem("Open Gut Train", "Exits PacePilot", :switch, {}));
         } else if (controller.lifecycle == :COMPLETE) {
@@ -275,6 +321,8 @@ class PacePilotView extends WatchUi.View {
                 m.addItem(new WatchUi.MenuItem("Open Gut Train", "Exits PacePilot", :switch, {}));
             }
         } else {
+            m.addItem(new WatchUi.MenuItem("Log drink", Fuel.SIP_ML + " ml", :drink, {}));
+            m.addItem(new WatchUi.MenuItem("Log food", Fuel.PORTION_G + " g carbs", :food, {}));
             m.addItem(new WatchUi.MenuItem("Workout metrics", null, :metrics, {}));
             m.addItem(new WatchUi.MenuItem("Walk now", null, :walk, {}));
             if (controller.decision[:advice] == :READY_TO_RUN) {
@@ -290,6 +338,11 @@ class PacePilotView extends WatchUi.View {
         if (id == :setup) { stage=0; quick=false; historyIndex=-1; planScreen=null; }
         if (id == :plan && ready()) { requestPlan(); }
         if (id == :history) { historyIndex=0; }
+        if (id == :drinkmode) { drinkMode = (drinkMode + 1) % 5; }
+        if (id == :drink && controller != null && controller.lifecycle != :COMPLETE) {
+            fluidMl += Fuel.SIP_ML; lastDrinkSec = controller.sessionSec; drinkDue = false;
+        }
+        if (id == :food && controller != null && controller.lifecycle != :COMPLETE) { carbsG += Fuel.PORTION_G; }
         if (id == :metrics) { metricsPage=!metricsPage; }
         if (id == :walk && controller.lifecycle == :ACTIVE) { controller.dispatch(:WALK_NOW); }
         if (id == :run && controller.lifecycle == :ACTIVE) { controller.dispatch(:ACCEPT_RUN); }
@@ -299,6 +352,7 @@ class PacePilotView extends WatchUi.View {
         syncAvatarTimer(); WatchUi.requestUpdate();
     }
     function back() {
+        if (!activated) { shutdown(); return false; }
         if (historyIndex >= 0) { historyIndex = -1; syncAvatarTimer(); WatchUi.requestUpdate(); return true; }
         if (endConfirm) { endConfirm = false; }
         else if (ready()) {

@@ -43,8 +43,15 @@ export async function loadOverview(store, { demo, today, now = Math.floor(Date.n
   // the estimate, never added to it.
   const activityKcal = fuelling.filter(s => !s.demo && s.calories > 0 && new Date(s.at * 1000).toISOString().slice(0, 10) === today)
     .reduce((sum, s) => sum + s.calories, 0);
+  // What was logged during today's workouts, from either watch app.
+  const onToday = seconds => new Date(seconds * 1000).toISOString().slice(0, 10) === today;
+  const logged = [...sessions.filter(s => onToday(s.endedAt)), ...fuelling.filter(s => !s.demo && onToday(s.at))];
+  const workoutIntake = {
+    fluidMl: logged.reduce((sum, s) => sum + (s.fluidMl ?? 0), 0),
+    carbsG: logged.reduce((sum, s) => sum + (s.carbsG ?? 0), 0),
+  };
   return {
-    demo, today, now, profile, plan,
+    demo, today, now, profile, plan, workoutIntake,
     recent: sessions.slice(0, 14),
     energy: estimateEnergy(profile ?? {}),
     mealsToday: mealsOn(meals, today),

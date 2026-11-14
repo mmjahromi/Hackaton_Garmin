@@ -30,6 +30,13 @@ export function normalizePaceSession(body) {
     result[key] = value;
   }
   // Links a completed session to the dashboard suggestion it carried out.
+  // Food and drink logged from PacePilot's workout menu.
+  for (const [key, max] of [["fluidMl", 30000], ["carbsG", 5000]]) {
+    if (body[key] != null) {
+      if (!Number.isInteger(body[key]) || body[key] < 0 || body[key] > max) throw new Error("Invalid " + key);
+      result[key] = body[key];
+    }
+  }
   if (body.planId != null) {
     if (typeof body.planId !== "string" || !/^[A-Za-z0-9_:.-]{1,64}$/.test(body.planId)) throw new Error("Invalid planId");
     result.planId = body.planId;

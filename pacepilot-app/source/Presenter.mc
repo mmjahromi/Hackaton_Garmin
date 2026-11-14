@@ -37,6 +37,17 @@ module Presenter {
         var tiny = Graphics.FONT_XTINY;
         var small = Graphics.FONT_SMALL;
         var large = Graphics.FONT_MEDIUM;
+        if (!v.activated) {
+            // What you see after choosing the app: its icon and one action.
+            if (dc has :drawBitmap) {
+                var icon = v.splash();
+                if (icon != null) { dc.drawBitmap(dc.getWidth()/2 - 48, 30, icon); }
+            }
+            line(dc, 150, "PacePilot", large, white);
+            line(dc, 180, "Manageable workouts", tiny, grey);
+            line(dc, 214, "START to open", tiny, accent);
+            return;
+        }
         if (v.avatarScreen()) {
             var label = v.controller.features[:mode] == :LIVE ? "LIVE" : "DEMO 4x";
             avatarText(dc, 14, label, tiny, accent);
@@ -167,12 +178,12 @@ module Presenter {
         }
         var f = c.features;
         if (v.metricsPage) {
-            line(dc, 49, "Session progress", small, white);
+            line(dc, 49, v.share ? v.liveFeed.status : "Session progress", small, white);
             line(dc, 77, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), small, accent);
             line(dc, 104, "Est. moving " + timeText(c.movingSec), tiny, white);
             line(dc, 128, f[:movement] == :UNKNOWN ? "Motion unknown" : (f[:movement] == :STILL ? "Stopped? Pause to rest" : "Movement estimated"), tiny, grey);
             line(dc, 152, f[:speedMps] == null ? "Speed -- m/s" : "Speed " + f[:speedMps].format("%.1f") + " m/s", tiny, white);
-            line(dc, 176, v.liveFeed.status, tiny, grey);
+            line(dc, 176, "Drunk " + v.fluidMl + " ml  Carbs " + v.carbsG + " g", tiny, white);
             var sources = f[:sourceStatus];
             line(dc, 200, "HR " + badge(sources[:hr]) + "  GPS " + badge(sources[:speed]), tiny, grey);
             line(dc, 223, "ACC " + badge(sources[:motionRms]) + "  BAR " + badge(sources[:pressure]), tiny, grey);
@@ -183,7 +194,8 @@ module Presenter {
         var model = v.prepareAvatar(System.getTimer());
         var width = dc.getWidth(); var height = dc.getHeight();
         // Same prototype composition, with extra room for the explicit run-offer hint.
-        avatarText(dc, 38, model.workoutText, tiny, grey);
+        // The drink cue takes the small top line, so it never hides the coach's instruction.
+        avatarText(dc, 38, v.drinkDue ? "Drink. MENU to log" : model.workoutText, tiny, v.drinkDue ? Graphics.COLOR_YELLOW : grey);
         var offered = model.advice == :READY_TO_RUN && model.canResumeRun && model.visualState != :SENSOR_UNAVAILABLE;
         if (offered) { avatarText(dc, 59, "MENU offers run option", tiny, grey); }
         var size = width * (offered ? 82 : 104) / 260;

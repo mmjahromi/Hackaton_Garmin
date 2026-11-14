@@ -297,3 +297,15 @@ The launcher icon is `resources/drawables/launcher_icon.png`, a 40 x 40 copy of 
 On opening, PacePilot makes one request to the dashboard and shows "Connecting...". If you have saved preferences with "Send plan to watch" on, it shows today's suggestion: START uses it, BACK keeps your own goal. If no plan is shared yet, it shows the labelled demo plan ("Demo: 15 min run/walk") so the flow can be tried; a demo plan is never reported back as a completed suggestion. If the dashboard cannot be reached it says so, and START continues to the home screen. The app works the same offline.
 
 The request carries only the app's name, so the dashboard can show "PacePilot checked in". No heart rate or workout data is sent unless sharing is switched on for a session. 62 simulator tests pass; the check-in was confirmed from the simulator against the live dashboard.
+
+## Opening screen and fuelling in a workout
+
+The app now opens on a single screen with its icon and "START to open". Nothing else responds there, and nothing is sent anywhere until START is pressed; START then reaches the dashboard as described above. BACK exits.
+
+Fuelling is part of the workout, so a long session does not need Gut Train open (a watch runs one app at a time):
+
+- **Drink cue.** "Drink. MENU to log" appears on the small top line with one vibration. It never replaces the coach's instruction. By default it is on only for sessions of 45 minutes or more, every 15 minutes; "Drink reminders" in the home menu cycles Auto, Off, every 10, 15 or 20 minutes.
+- **Logging.** The workout menu has "Log drink" (150 ml) and "Log food" (25 g carbs). Neither pauses the workout. Totals show on the metrics page.
+- **Dashboard.** With sharing on, the totals travel in the live updates and the session summary, and the Today tab shows "Logged during workouts today".
+
+68 simulator tests pass. Not verified by eye: the opening screen with the icon, and the drink cue's position on the workout screen.

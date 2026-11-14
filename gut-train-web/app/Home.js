@@ -322,6 +322,7 @@ export default function Home() {
                           {stream.heartRate != null ? `${stream.heartRate} bpm` : "Heart rate unavailable"}
                           {" · "}{Math.floor(stream.elapsedSec / 60)}:{String(stream.elapsedSec % 60).padStart(2, "0")} elapsed
                           {stream.goalSec ? ` of ${Math.round(stream.goalSec / 60)} min` : ""}
+                          {(stream.fluidMl > 0 || stream.carbsG > 0) ? ` · ${stream.fluidMl ?? 0} ml, ${stream.carbsG ?? 0} g carbs logged` : ""}
                         </p>
                       )}
                     </div>
@@ -382,6 +383,11 @@ export default function Home() {
             <dd>{data.activityKcalToday != null ? <>{data.activityKcalToday}<small> kcal in fuelling sessions</small></> : <small>No reading today</small>}</dd>
           </div>
         </dl>
+        <p className="sa-sub">
+          Logged during workouts today: {data.workoutIntake.fluidMl > 0 || data.workoutIntake.carbsG > 0
+            ? `${data.workoutIntake.fluidMl} ml of fluid and ${data.workoutIntake.carbsG} g of carbohydrate, from the watch.`
+            : "nothing yet. Use “Log drink” and “Log food” in the watch’s workout menu."}
+        </p>
         <form className="sa-row sa-meal" onSubmit={addMeal}>
           <label>Calories (kcal)<input type="number" min="1" max="5000" required value={meal.kcal} onChange={e => setMeal({ ...meal, kcal: e.target.value })} /></label>
           <label>What was it? (optional)<input type="text" maxLength="40" value={meal.label} onChange={e => setMeal({ ...meal, label: e.target.value })} /></label>

@@ -10,6 +10,8 @@ class DashboardSync {
         if (!consent || summary[:mode] == :DEMO) { return; }
         var body = new SummaryStore().encode(summary);
         if (summary.hasKey(:planId)) { body["planId"] = summary[:planId]; }
+        if (summary.hasKey(:fluidMl)) { body["fluidMl"] = summary[:fluidMl]; }
+        if (summary.hasKey(:carbsG)) { body["carbsG"] = summary[:carbsG]; }
         status = "Sharing...";
         try {
             Communications.makeWebRequest("https://gut-train-web.vercel.app/api/pace-sessions", body,

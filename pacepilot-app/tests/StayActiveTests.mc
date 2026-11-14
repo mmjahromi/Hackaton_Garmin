@@ -154,3 +154,65 @@ function reviewScreenTogglesSharing(logger as Logger) as Boolean {
     v.shutdown();
     return true;
 }
+
+(:test)
+function appOpensOnActivateScreen(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    v.config = Config.defaults();
+    v.activated = false; v.autoLink = false;      // as the app launches it, minus the network call
+    var dc = new DrawingProbe();
+    Presenter.render(dc, v);
+    Test.assert(dc.texts.indexOf("START to open") != -1);
+    v.adjust(1); v.menu();                        // nothing else responds yet
+    Test.assert(!v.activated && v.stage == -1);
+    v.select();                                   // START opens the app
+    Test.assert(v.activated && v.stage == -1 && v.controller == null);
+    Presenter.render(dc, v);
+    Test.assert(dc.texts.indexOf("START to open") == -1);
+    v.shutdown();
+    return true;
+}
+
+(:test)
+function backOnActivateScreenExits(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    v.activated = false; v.autoLink = false;
+    return !v.back();
+}
+
+(:test)
+function drinkCueRules(logger as Logger) as Boolean {
+    Test.assert(Fuel.intervalSec(0, 1200) == 0);        // auto: a 20-minute session gets no cue
+    Test.assert(Fuel.intervalSec(0, 2700) == 900);      // auto: 45 minutes or more, every 15
+    Test.assert(Fuel.intervalSec(1, 7200) == 0);        // off stays off
+    Test.assert(Fuel.intervalSec(2, 600) == 600 && Fuel.intervalSec(4, 600) == 1200);
+    Test.assert(!Fuel.due(899, 0, 900) && Fuel.due(900, 0, 900));
+    Test.assert(!Fuel.due(1500, 900, 900) && Fuel.due(1800, 900, 900));
+    return !Fuel.due(99999, 0, 0);                      // no interval, never due
+}
+
+(:test)
+function loggingFoodAndDrinkKeepsTheWorkoutRunning(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    v.config = Config.defaults(); v.mode = :DEMO; v.stage = 8;
+    v.select();
+    Test.assert(v.controller.lifecycle == :ACTIVE && v.fluidMl == 0 && v.carbsG == 0);
+    v.drinkDue = true;
+    v.task(:drink);
+    Test.assert(v.fluidMl == 150 && !v.drinkDue && v.controller.lifecycle == :ACTIVE);
+    v.task(:food); v.task(:food);
+    Test.assert(v.carbsG == 50 && v.controller.lifecycle == :ACTIVE);
+    Presenter.render(new DrawingProbe(), v);
+    v.metricsPage = true; Presenter.render(new DrawingProbe(), v);
+    v.shutdown();
+    return true;
+}
+
+(:test)
+function drinkReminderSettingCycles(logger as Logger) as Boolean {
+    var v = new PacePilotView();
+    for (var i = 0; i < 5; i++) { Test.assert(Fuel.modeLabel(v.drinkMode) instanceof Toybox.Lang.String); v.task(:drinkmode); }
+    Test.assert(v.drinkMode == 0);
+    v.shutdown();
+    return true;
+}
