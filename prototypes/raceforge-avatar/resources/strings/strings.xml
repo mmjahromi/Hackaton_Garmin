@@ -1,0 +1,10 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">RaceForge</string>
+
+    <string id="prompt">Click the menu button</string>
+
+    <string id="menu_label_1">DEMO: easy run</string>
+    <string id="menu_label_2">DEMO: tempo run</string>
+    <string id="menu_poses">DEMO: static poses</string>
+    <string id="menu_freeze">Pause / resume demo</string>
+</strings>
