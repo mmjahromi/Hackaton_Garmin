@@ -29,6 +29,11 @@ export function normalizePaceSession(body) {
     if (value !== null && (!Number.isInteger(value) || !inRange(value, range))) throw new Error("Invalid " + key);
     result[key] = value;
   }
+  // Links a completed session to the dashboard suggestion it carried out.
+  if (body.planId != null) {
+    if (typeof body.planId !== "string" || !/^[A-Za-z0-9_:.-]{1,64}$/.test(body.planId)) throw new Error("Invalid planId");
+    result.planId = body.planId;
+  }
   result.nextGoalSec = body.nextGoalSec ?? null;
   if (result.nextGoalSec !== null && !inRange(result.nextGoalSec, [60, 3600])) throw new Error("Invalid next goal");
   return result;

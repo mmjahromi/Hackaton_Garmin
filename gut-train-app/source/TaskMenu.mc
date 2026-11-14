@@ -4,7 +4,7 @@ import Toybox.System;
 
 module GutTasks {
     function open(view) {
-        var m=new WatchUi.Menu2({:title=>view == null ? "Gut Train tasks" : "Workout stopped"});
+        var m=new WatchUi.Menu2({:title=>view == null ? "Gut Train" : (view.paused ? "Workout paused" : "Workout running")});
         if (view == null) {
             m.addItem(new WatchUi.MenuItem("Open PacePilot", "Exits Gut Train", :switch, {}));
             m.addItem(new WatchUi.MenuItem("Restart programme", "Confirmation required", :reset, {}));
@@ -12,7 +12,7 @@ module GutTasks {
             m.addItem(new WatchUi.MenuItem("Log food portion", "Uses your chosen portion", :food, {}));
             m.addItem(new WatchUi.MenuItem("Log drink", "150 ml", :drink, {}));
             m.addItem(new WatchUi.MenuItem("Flag gut discomfort", null, :gut, {}));
-            m.addItem(new WatchUi.MenuItem("Resume workout", null, :resume, {}));
+            if (view.paused) { m.addItem(new WatchUi.MenuItem("Resume workout", null, :resume, {})); }
             m.addItem(new WatchUi.MenuItem("Finish workout", "Confirmation required", :finish, {}));
             m.addItem(new WatchUi.MenuItem("Open PacePilot", "Finish workout first", :blocked, {}));
         }

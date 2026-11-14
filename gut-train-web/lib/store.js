@@ -162,3 +162,63 @@ export async function listLive(now = Math.floor(Date.now()/1000)) {
   const rows=isPersistent ? (await redis(['HVALS',LIVE_KEY])).map(JSON.parse) : [...(globalThis.__garminLive ?? new Map()).values()];
   return rows.filter(row=>now-row.receivedAt<86400).sort((a,b)=>b.receivedAt-a.receivedAt);
 }
+
+// ---- Stay-active data: profile, plan decisions, meals, heartbeat ----------
+// Real and demo records live under different keys and never mix. Demo keys
+// are the only ones resetDemo() touches.
+async function kvGet(key) {
+  const raw = isPersistent ? await redis(["GET", key]) : (globalThis.__gutTrainKv ??= new Map()).get(key) ?? null;
+  return raw == null ? null : JSON.parse(raw);
+}
+async function kvSet(key, value) {
+  const raw = JSON.stringify(value);
+  if (isPersistent) { await redis(["SET", key, raw]); return; }
+  (globalThis.__gutTrainKv ??= new Map()).set(key, raw);
+}
+async function kvDel(key) {
+  if (isPersistent) { await redis(["DEL", key]); return; }
+  (globalThis.__gutTrainKv ??= new Map()).delete(key);
+}
+const space = (demo, name) => `gut-train:${demo ? "demo:" : ""}${name}`;
+
+export const getProfile = (demo = false) => kvGet(space(demo, "profile"));
+export const setProfile = (profile, demo = false) => kvSet(space(demo, "profile"), profile);
+
+export async function listDecisions(demo = false) {
+  return (await kvGet(space(demo, "decisions"))) ?? [];
+}
+// One decision per calendar day; a newer choice for the same day replaces it.
+export async function saveDecision(decision, demo = false) {
+  const rows = (await listDecisions(demo)).filter(row => row.date !== decision.date);
+  rows.unshift(decision);
+  await kvSet(space(demo, "decisions"), rows.slice(0, 60));
+}
+
+export async function listMeals(demo = false) {
+  return (await kvGet(space(demo, "meals"))) ?? [];
+}
+export async function addMeal(meal, demo = false) {
+  const rows = await listMeals(demo);
+  rows.unshift(meal);
+  await kvSet(space(demo, "meals"), rows.slice(0, 300));
+}
+export async function deleteMeal(id, demo = false) {
+  const rows = await listMeals(demo);
+  const kept = rows.filter(row => row.id !== id);
+  if (kept.length !== rows.length) await kvSet(space(demo, "meals"), kept);
+  return kept.length !== rows.length;
+}
+
+// Newest check-in per watch app. Real mode only: a demo never has a watch.
+export async function listBeats() {
+  return Object.values((await kvGet("gut-train:heartbeat")) ?? {});
+}
+export async function saveBeat(beat) {
+  const beats = (await kvGet("gut-train:heartbeat")) ?? {};
+  beats[beat.app] = beat;
+  await kvSet("gut-train:heartbeat", beats);
+}
+
+export async function resetDemo() {
+  for (const name of ["profile", "decisions", "meals"]) await kvDel(space(true, name));
+}

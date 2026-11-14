@@ -1,6 +1,6 @@
 # Build fingerprints
 
-Source/test fingerprint: 747ca88800691839bd0a3b1b59b8e927678ac8788e7582bd4c21e20e7f1d0eda
+Built 2026-11-14T20:24Z, Connect IQ SDK 9.1.0, device fenix7pro.
 
-97e5434450b4bd618999eb45e9dba60e6745f1f384c7ac7c8c68dfec5a2186f1  guttrain.prg
-7a0652fc901a1ed707b121767e7e379953e6bc8569a4a8adb0e25fb1ca3dcc53  guttrain-test.prg
+9a6a92690da39e76dbb99d9c718cee18dad8e5a5452ff5ff278b7034b65b9f7c  guttrain.prg
+5869e3114fd9c61dcae09ccca79a991bc93ac176947c6e4760ae724f02720609  guttrain-test.prg

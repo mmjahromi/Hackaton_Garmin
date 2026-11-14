@@ -48,3 +48,18 @@ Each watch uploads at most one normal snapshot every 5 seconds, with immediate s
 PacePilot sends filtered HR when ready, elapsed time, goal, estimated moving time, speed, and active/paused/completed state. Gut Train sends HR, elapsed time, distance, speed, logged carbs/fluids, and state. Paused/completed packets carry no current HR. The dashboard shows the last120 snapshots (about 10 min at the nominal rate); gaps are not interpolated. After 20 sec without a fresh sample it marks the stream stale and stops presenting old HR as current. End delivery is best effort: if connectivity is lost while ending, the dashboard becomes stale rather than inventing completion.
 
 The API keeps the newest session per app/mode for up to 24 h, with atomic Redis ordering checks to ignore duplicate, delayed, or post-completion packets. This is a shared hackathon feed, not multi-user private tracking. Existing summaries remain separate. The new watch binaries must be installed; deploying the website does not update the watch.
+
+## Stay-active revision: menus no longer pause the workout
+
+Opening the task menu or the finish question during a session leaves the session running: the clock, sensor sampling, activity recording, feed and drink cues and the live feed all continue underneath. Only START/STOP pauses and resumes.
+
+| Screen | START | UP / DOWN | Hold UP (MENU) | BACK |
+| --- | --- | --- | --- | --- |
+| Home | Open fuel plan | DOWN toggles demo mode | Open PacePilot, Restart programme | Exit |
+| Fuel plan | Confirm step | Adjust value | | Previous |
+| Session | Pause / resume timer | Nothing (so a stray press changes nothing) | Log food portion, Log drink, Flag gut discomfort, Resume (when paused), Finish, Open PacePilot (blocked until finished) | Finish? |
+| Rating / next plan | Confirm | Adjust | | Confirm |
+
+The menu title says whether the workout is running or paused. 34 tests pass in the simulator. The menu behaviour itself needs button presses and has not been exercised by an automated test or on hardware.
+
+Not built in this revision: logging everyday meals on the watch (use the dashboard's "Food and energy today"), and an idle heartbeat from the background service (the dashboard has the `/api/heartbeat` endpoint ready for it).

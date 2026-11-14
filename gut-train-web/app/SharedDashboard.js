@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import LiveActivity from "./LiveActivity";
+import Home from "./Home";
 import Dashboard from "./Dashboard";
 import { paceOverview } from "../lib/pace";
 
@@ -13,7 +14,7 @@ const minutes = seconds => seconds == null ? "Choose later" : Math.round(seconds
 const stamp = seconds => new Date(seconds * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
 
 export default function SharedDashboard({ initialPace, ...gutProps }) {
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("today");
   const [pace, setPace] = useState(initialPace);
   const [nutrition, setNutrition] = useState(gutProps.initialSessions);
   const [status, setStatus] = useState("Dashboard online");
@@ -46,19 +47,20 @@ export default function SharedDashboard({ initialPace, ...gutProps }) {
   return (
     <>
       <header className="shared-header">
-        <div><p className="eyebrow">PacePilot + Gut Train</p><h1>Your activity and fueling</h1></div>
+        <div><p className="eyebrow">PacePilot + Gut Train</p><h1>Stay active, one manageable session at a time</h1></div>
         <p role="status">{status}</p>
       </header>
       <nav className="shared-nav" aria-label="Dashboard sections">
-        {["overview", "recovery", "nutrition"].map(value => (
+        {[["today", "Today"], ["overview", "Workouts"], ["nutrition", "Fuelling sessions"]].map(([value, label]) => (
           <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)}>
-            {value[0].toUpperCase() + value.slice(1)}
+            {label}
           </button>
         ))}
       </nav>
       <p className="sharing-note">Shared hackathon demo. Uploaded activity and summaries are visible to anyone with this URL. Keep watch sharing off for private sessions.</p>
-      <div className="shared-main"><LiveActivity /></div>
-      {tab === "nutrition" ? <Dashboard {...gutProps} initialSessions={nutrition} /> : (
+      {tab === "today" && <Home />}
+      {tab === "overview" && <div className="shared-main"><LiveActivity /></div>}
+      {tab === "today" ? null : tab === "nutrition" ? <Dashboard {...gutProps} initialSessions={nutrition} /> : (
         <main className="shared-main">
           <section className="shared-cards" aria-label="Live session totals">
             <article><h2>Sessions completed</h2><strong>{overview.completed}</strong><p>of {overview.sessions} PacePilot sessions</p></article>

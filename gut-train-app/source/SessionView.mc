@@ -17,7 +17,7 @@ import Toybox.WatchUi;
 // today's carbs-per-hour target, and logs each feed with one button press.
 //
 //   START  = stop/resume the workout timer
-//   UP / DOWN / hold MENU = task menu (stops workout)
+//   hold MENU (UP) = task menu; the workout keeps running underneath
 //   Food, drinks and discomfort are explicit menu tasks
 //   BACK   = end the session and save it
 class SessionView extends WatchUi.View {
@@ -34,6 +34,7 @@ class SessionView extends WatchUi.View {
     var liveFeed=new LiveFeed();
     private var _liveSessionId as Number = 0;
     var paused as Boolean = false;
+    private var _covered as Boolean = false;
     private var _pauseAt as Number = 0;
     private var _pausedMs as Number = 0;
 
@@ -93,13 +94,22 @@ class SessionView extends WatchUi.View {
             if (demoMode && _userMaxHr == 0) { _userMaxHr = 185; }
             startRecording();
         }
+        // Returning from a menu or the finish question: the session never
+        // stopped, so there is nothing to restart.
+        _covered = false;
         if (!paused) { startSensors(); }
-        var timer = new Timer.Timer();
-        timer.start(method(:tick), 500, true);
-        _timer = timer;
+        if (_timer == null) {
+            var timer = new Timer.Timer();
+            timer.start(method(:tick), 500, true);
+            _timer = timer;
+        }
     }
 
     function onHide() as Void {
+        // A menu or the finish question sits on top of this screen. The
+        // workout carries on underneath: clock, sensors, recording and cues.
+        // Only START/STOP pauses it.
+        if (_covered && !_finished) { return; }
         stopTimer();
         stopSensors();
         closeStop(System.getTimer());
@@ -411,12 +421,14 @@ class SessionView extends WatchUi.View {
         publishLive();
         WatchUi.requestUpdate();
     }
+    // True while a menu or confirmation covers the session screen.
+    function isCovered() as Boolean { return _covered; }
     function tasks() as Void {
-        if (!paused) { togglePause(); }
+        _covered = true;
         GutTasks.open(self);
     }
     function confirmFinish() as Void {
-        if (!paused) { togglePause(); }
+        _covered = true;
         WatchUi.pushView(new WatchUi.Confirmation("Finish workout?"),new GutFinishDelegate(self),WatchUi.SLIDE_IMMEDIATE);
     }
     function finish() as Void {
@@ -665,15 +677,11 @@ class SessionDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    function onPreviousPage() as Boolean {
-        _view.tasks();
-        return true;
-    }
+    // UP and DOWN do nothing mid-session, so a stray press cannot change
+    // anything. Tasks are under MENU (hold UP).
+    function onPreviousPage() as Boolean { return true; }
 
-    function onNextPage() as Boolean {
-        _view.tasks();
-        return true;
-    }
+    function onNextPage() as Boolean { return true; }
 
     function onMenu() as Boolean { _view.tasks(); return true; }
 

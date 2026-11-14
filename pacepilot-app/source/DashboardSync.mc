@@ -9,6 +9,7 @@ class DashboardSync {
     function send(summary, consent) {
         if (!consent || summary[:mode] == :DEMO) { return; }
         var body = new SummaryStore().encode(summary);
+        if (summary.hasKey(:planId)) { body["planId"] = summary[:planId]; }
         status = "Sharing...";
         try {
             Communications.makeWebRequest("https://gut-train-web.vercel.app/api/pace-sessions", body,

@@ -37,7 +37,10 @@ module Presenter {
         var tiny = Graphics.FONT_XTINY;
         var small = Graphics.FONT_SMALL;
         var large = Graphics.FONT_MEDIUM;
-        line(dc, 27, v.mode == :LIVE ? "LIVE" : "DEMO 4x", tiny, accent);
+        if (v.avatarScreen()) {
+            var label = v.controller.features[:mode] == :LIVE ? "LIVE" : "DEMO 4x";
+            avatarText(dc, 14, label, tiny, accent);
+        } else { line(dc, 27, v.mode == :LIVE ? "LIVE" : "DEMO 4x", tiny, accent); }
         if (v.historyIndex >= 0) {
             var records = v.storage.history();
             line(dc, 70, "Recent sessions", small, white);
@@ -57,6 +60,36 @@ module Presenter {
             line(dc, 120, v.endYes ? "End selected" : "Cancel selected", small, accent);
             line(dc, 160, "UP / DOWN to choose", tiny, grey);
             line(dc, 192, "START confirms", tiny, white);
+            return;
+        }
+        if (v.ready() && v.planScreen != null) {
+            var offer = v.planScreen;
+            line(dc, 60, "Today's plan", tiny, grey);
+            line(dc, 92, offer[:text], small, offer[:ok] ? accent : white);
+            var detail = PlanOffer.wrap(offer[:detail], 24);
+            line(dc, 128, detail[0], tiny, grey);
+            line(dc, 150, detail[1], tiny, grey);
+            line(dc, 187, offer[:ok] ? "START use it" : "BACK returns", tiny, white);
+            line(dc, 213, offer[:ok] ? "BACK keeps yours" : "Nothing changed", tiny, grey);
+            return;
+        }
+        if (v.ready() && v.stage == -1) {
+            var goalSec = v.mode == :DEMO ? 180 : (v.planGoalSec != null ? v.planGoalSec : v.config[:goalSec]);
+            line(dc, 62, "Today", small, grey);
+            line(dc, 98, (goalSec / 60).toString() + " min run/walk", large, white);
+            line(dc, 134, v.planId != null ? "From your dashboard plan" : "Easy pace. Walks count.", tiny, accent);
+            line(dc, 178, "START begin", small, white);
+            line(dc, 210, "Hold UP for options", tiny, grey);
+            return;
+        }
+        if (v.ready() && v.stage == 8 && v.quick) {
+            var reviewGoal = v.mode == :DEMO ? 180 : (v.planGoalSec != null ? v.planGoalSec : v.config[:goalSec]);
+            line(dc, 58, "Ready?", small, white);
+            line(dc, 92, (reviewGoal / 60).toString() + " min", large, accent);
+            line(dc, 126, "HR band " + shown(v.config[:hrLowBpm]) + "-" + shown(v.config[:hrHighBpm]) + " bpm", tiny, white);
+            line(dc, 150, v.share ? "Sharing: public demo site" : "Sharing: off", tiny, grey);
+            line(dc, 187, "START begin / BACK", tiny, white);
+            line(dc, 213, "Hold UP to change", tiny, grey);
             return;
         }
         if (v.ready()) {
@@ -123,43 +156,72 @@ module Presenter {
             return;
         }
         if (c.lifecycle == :PAUSED) {
-            line(dc, 82, "Paused", large, accent);
-            line(dc, 119, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), small, white);
-            line(dc, 158, "START resumes", small, grey);
-            line(dc, 191, "BACK end session", tiny, grey);
+            var resting = v.prepareAvatar(System.getTimer());
+            var w = dc.getWidth(); var h = dc.getHeight();
+            v.avatarRenderer.draw(dc, resting, w*87/260, h*44/260, w*85/260, h*85/260);
+            avatarText(dc, 134, "Paused", Graphics.FONT_SMALL, white);
+            avatarText(dc, 163, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), tiny, white);
+            avatarText(dc, 188, "START resumes", tiny, grey);
+            avatarText(dc, 211, "BACK end session", tiny, grey);
             return;
         }
         var f = c.features;
         if (v.metricsPage) {
-            line(dc, 65, "Session progress", small, white);
-            line(dc, 100, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), small, accent);
-            line(dc, 135, "Est. moving " + timeText(c.movingSec), tiny, white);
-            line(dc, 162, f[:movement] == :UNKNOWN ? "Motion unknown" : (f[:movement] == :STILL ? "Stopped? Pause to rest" : "Movement estimated"), tiny, grey);
-            line(dc, 190, f[:speedMps] == null ? "Speed -- m/s" : "Speed " + f[:speedMps].format("%.1f") + " m/s", tiny, white);
-            line(dc, 214, v.liveFeed.status, tiny, grey);
+            line(dc, 49, "Session progress", small, white);
+            line(dc, 77, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), small, accent);
+            line(dc, 104, "Est. moving " + timeText(c.movingSec), tiny, white);
+            line(dc, 128, f[:movement] == :UNKNOWN ? "Motion unknown" : (f[:movement] == :STILL ? "Stopped? Pause to rest" : "Movement estimated"), tiny, grey);
+            line(dc, 152, f[:speedMps] == null ? "Speed -- m/s" : "Speed " + f[:speedMps].format("%.1f") + " m/s", tiny, white);
+            line(dc, 176, v.liveFeed.status, tiny, grey);
+            var sources = f[:sourceStatus];
+            line(dc, 200, "HR " + badge(sources[:hr]) + "  GPS " + badge(sources[:speed]), tiny, grey);
+            line(dc, 223, "ACC " + badge(sources[:motionRms]) + "  BAR " + badge(sources[:pressure]), tiny, grey);
             return;
         }
         var band=HrFeedback.state(f[:hrBpm],f[:hrReady],c.config[:hrLowBpm],c.config[:hrHighBpm]);
         accent=HrFeedback.color(band,Toybox.System.getTimer());
-        var action = "Run easy";
-        var reason = "Keep it comfortable";
-        if (c.decision[:advice] == :EASE_OFF) { action = "Ease off"; reason = f[:terrain] == :UP ? "Climb likely" : "HR above chosen band"; }
-        if (c.decision[:advice] == :WALK) { action = "Walk break"; reason = "Take it comfortably"; }
-        if (c.decision[:advice] == :READY_TO_RUN) { action = "Try running?"; reason = "MENU offers run option"; }
-        if (!f[:hrReady]) { action = "HR unavailable"; reason = "Walk if needed"; }
-        if (f[:movement] == :STILL) { reason = "Stopped? Pause to rest"; }
-        if (c.decision[:advice] == :RUN_EASY) { reason=HrFeedback.message(band); }
-        line(dc, 61, action, large, white);
-        line(dc, 90, reason, tiny, accent);
-        line(dc, 123, "HR " + shown(f[:hrBpm]) + " bpm", small, white);
-        line(dc, 151, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), tiny, grey);
-        var s = f[:sourceStatus];
-        line(dc, 177, "HR " + badge(s[:hr]) + "  GPS " + badge(s[:speed]), tiny, grey);
-        line(dc, 198, "ACC " + badge(s[:motionRms]) + "  BAR " + badge(s[:pressure]), tiny, grey);
-        line(dc, 221, f[:movement] == :UNKNOWN ? "Motion unknown" : "START pause", tiny, accent);
+        var model = v.prepareAvatar(System.getTimer());
+        var width = dc.getWidth(); var height = dc.getHeight();
+        // Same prototype composition, with extra room for the explicit run-offer hint.
+        avatarText(dc, 38, model.workoutText, tiny, grey);
+        var offered = model.advice == :READY_TO_RUN && model.canResumeRun && model.visualState != :SENSOR_UNAVAILABLE;
+        if (offered) { avatarText(dc, 59, "MENU offers run option", tiny, grey); }
+        var size = width * (offered ? 82 : 104) / 260;
+        v.avatarRenderer.draw(dc, model, (width-size)/2, height*(offered ? 80 : 60)/260, size, size);
+        avatarText(dc, 166, model.dataText, tiny, 0x00AAAA);
+        var headline = avatarHeadline(model, f);
+        avatarText(dc, 190, headline, headlineFont(dc, headline, height*190/260), white);
+        avatarText(dc, 218, timeText(c.sessionSec) + " / " + timeText(c.config[:goalSec]), tiny, grey);
         dc.setColor(accent, Graphics.COLOR_TRANSPARENT); dc.setPenWidth(3);
         var sweep = 360*c.sessionSec/c.config[:goalSec];
-        if (sweep > 0) { dc.drawArc(130,130,126,Graphics.ARC_CLOCKWISE,90,90-sweep); }
+        if (sweep > 0) { dc.drawArc(width/2,height/2,(width < height ? width : height)/2-4,Graphics.ARC_CLOCKWISE,90,90-sweep); }
         dc.setPenWidth(1);
     }
+    function avatarHeadline(model, features) {
+        if (model.visualState == :SENSOR_UNAVAILABLE) { return "HR unavailable"; }
+        if (model.advice == :READY_TO_RUN && model.canResumeRun) { return "Try running?"; }
+        if (features[:movement] == :STILL) { return "Stopped? Pause to rest"; }
+        if (model.advice == :EASE_OFF && features[:terrain] == :UP) { return "Ease off: Climb likely"; }
+        return model.headline;
+    }
+    // Prototype's circular font-box check, with clearance inside the progress arc.
+    function textFitsCircle(dc, text, font, y) {
+        var half = (dc.getTextWidthInPixels(text, font)+1)/2;
+        var cy = dc.getHeight()/2;
+        var above = cy-y;
+        var below = y+dc.getFontHeight(font)-cy;
+        var dy = above > below ? above : below;
+        var diameter = dc.getWidth() < dc.getHeight() ? dc.getWidth() : dc.getHeight();
+        var radius = diameter/2-8;
+        return half*half + dy*dy <= radius*radius;
+    }
+    function headlineFont(dc, text, y) {
+        return dc.getFontHeight(Graphics.FONT_TINY) <= 26 && textFitsCircle(dc,text,Graphics.FONT_TINY,y) ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
+    }
+    function avatarText(dc, designY, text, font, color) {
+        var y = dc.getHeight()*designY/260;
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(dc.getWidth()/2,y,font,text,Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
 }

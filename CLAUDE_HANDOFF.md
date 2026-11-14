@@ -100,3 +100,17 @@ Fixed three issues found by targeted review:
 3. Nutrition API used Number(value), allowing null/booleans/blanks/arrays to become valid numbers. Type/blank guards reject these while preserving legitimate numeric zero and numeric-string compatibility. The regression was observed failing before the fix and passes afterward.
 
 Current validation: 36/36 PacePilot, 28/28 Gut Train, 54/54 web tests, plus 1/1 real-Redis integration test. Both watch builds and Next production build succeed. Raw watch logs: tests/debug-simulator-results.txt. See DEBUG_REPORT.md. Local production HTTP smoke passed; public API validation fix deployed. Physical watch/phone, native menu behavior, actual haptic feel and visual acceptance remain outstanding.
+
+## Stay-active revision (Claude, after Codex ran out of usage mid-task)
+
+Product goal: help the user stay active consistently with manageable workouts that adapt to recent activity, preferences and feedback. Only the `stay_active` goal exists.
+
+Done and tested:
+- Dashboard: new Today tab (`app/Home.js`), profile/onboarding, adaptive plan with reasons and explicit decisions, labelled two-week demo isolated from real data, meal log, optional Mifflin-St Jeor estimate, five watch-data states, watch-config endpoint with consent. 81 tests, production build, deployed.
+- PacePilot: animated avatar from `prototypes/raceforge-avatar` on the workout screen (presentation only), home screen with two-press start, "Get today's plan", "Accept running" listed only when offered, planId sent with shared summaries. 60 simulator tests.
+- Gut Train: task menu and finish question no longer pause the workout; UP/DOWN do nothing mid-session. 34 simulator tests.
+- Release PRGs and checksums rebuilt for both apps. `run-watch.sh` and root `.vscode/launch.json` run either app from the repo root.
+
+Not done (do not describe as working): watch-side meal logging, idle heartbeat sender, flashlight cue, a celebration screen with the avatar, separating short sessions from the fuelling flow on the watch, dashboard-to-watch sync beyond the on-request plan fetch, accounts.
+
+Unverified: every watch screen by eye, menu behaviour by button press, real hardware, the plan request and live feed from a real watch. No screenshots were taken.

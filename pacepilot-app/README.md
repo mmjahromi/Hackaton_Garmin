@@ -228,7 +228,33 @@ The existing workout screen shows a green progress arc when fresh filtered HR is
 
 The task menu can open Gut Train from setup or after completed feedback. Switching during an unfinished workout requires ending it first; it does not carry a running workout into the other app. Garmin’s System.exitTo presents its own confirmation and handles launch. A missing app shows an installation message.
 
-The visual redesign is intentionally reserved for Claude; see `../CLAUDE_HANDOFF.md`.
+### RaceForge avatar integration
+
+The active main page embeds the presentation-only character from
+`prototypes/raceforge-avatar`: easy/focused jogging, easing, positive walking and
+recovery, a neutral unavailable-HR pose, and static rest while paused. Text stays
+the primary instruction, including the explicit MENU running offer, stopped
+prompt, and climb context. LIVE / DEMO 4x remains visible. HR and pace come from
+qualified features; HR reacquisition displays `HR --`. Sensor badges now live on
+the metrics page. Crowded setup and summary screens remain text-only.
+
+`AvatarBridge` uses PacePilot's `HrFeedback.state` and chosen band: LOW and
+below-band NEAR map to BELOW, IN_BAND to TARGET, above-band NEAR to ABOVE, HIGH to
+VERY_HIGH, and missing/reacquiring HR to UNKNOWN. Only coach EASE_OFF/WALK sets
+sustained context; a high reading with RUN_EASY never produces a winded face.
+The avatar never changes advice, thresholds, haptics, lifecycle, storage or sharing.
+
+A separate 250 ms timer only requests redraw while the active main page is
+visible. Menus, confirmation, metrics, hide, pause and completion stop it.
+`System.getTimer()` drives animation independently of DEMO's unchanged 4x session
+clock. One retained bitmap is attempted only with conservative free-memory
+headroom; otherwise drawing goes directly to the display. The surface is released
+on hide or leaving the avatar page. No frame queue or animation assets are used.
+
+Avatar mapping, drawing-probe, timer-isolation and applicable original prototype
+tests compile with `./build.sh` (including `-t`). This integration was **compiled
+only**: no simulator was started, tests were not executed, and visual appearance,
+hardware smoothness and runtime memory remain unverified.
 
 ## Live workout feed (current revision)
 
@@ -239,3 +265,27 @@ Each watch uploads at most one normal snapshot every 5 seconds, with immediate s
 PacePilot sends filtered HR when ready, elapsed time, goal, estimated moving time, speed, and active/paused/completed state. Gut Train sends HR, elapsed time, distance, speed, logged carbs/fluids, and state. Paused/completed packets carry no current HR. The dashboard shows the last120 snapshots (about 10 min at the nominal rate); gaps are not interpolated. After 20 sec without a fresh sample it marks the stream stale and stops presenting old HR as current. End delivery is best effort: if connectivity is lost while ending, the dashboard becomes stale rather than inventing completion.
 
 The API keeps the newest session per app/mode for up to 24 h, with atomic Redis ordering checks to ignore duplicate, delayed, or post-completion packets. This is a shared hackathon feed, not multi-user private tracking. Existing summaries remain separate. The new watch binaries must be installed; deploying the website does not update the watch.
+
+## Stay-active revision: what the app does, and every button
+
+PacePilot guides one manageable run/walk session at a time. It tells you when to ease off or walk, counts walking toward your goal, and lets the session length follow your own feedback and, if you choose, today's suggestion from the dashboard.
+
+Start is now two presses: the home screen shows today's session, START opens a short review (length, heart-rate band, sharing), START again begins. Everything else is in the menu (hold UP).
+
+| Screen | START | UP / DOWN | Hold UP (MENU) | BACK |
+| --- | --- | --- | --- | --- |
+| Home | Open review | Nothing | Get today's plan, Change settings, Local history, Open Gut Train | Exit |
+| Review | Begin workout | Nothing | Same menu | Home |
+| Change settings (from menu) | Next step | Adjust value | Menu | Previous step |
+| Today's plan | Use the suggestion | Nothing | Menu | Keep your own goal |
+| Workout | Pause / resume timer | Switch to metrics page | Walk now, Accept running (only when offered), Finish, Metrics | Finish? (Cancel preselected) |
+| Finish question | Confirm choice | Cancel / End | | Cancel |
+| After workout | Confirm answer | Change answer | Retry sharing, Open Gut Train | Other summary page |
+
+START selects in setup and menus and controls the timer in a workout. LIGHT is never intercepted. Opening the menu during a workout does not pause it: the session timer keeps running and only the avatar redraw stops while the menu covers the screen.
+
+**Get today's plan** makes one request to the dashboard (`/api/watch-config`). It needs the paired phone online and "Send plan to watch" switched on in the dashboard's preferences. The watch shows the suggestion and its reason; START uses it for this session only (the saved goal is unchanged), BACK keeps yours. A failed or unexpected answer changes nothing. When sharing is on, the finished session carries the suggestion's id so the dashboard can mark it done.
+
+Verified in the SDK 9.1.0 documentation for this revision: `Attention` documents vibration, backlight and a flashlight API (`FlashlightMode` with off, on and strobe). No flashlight cue is implemented: it was not needed for the core flow and has not been tried on hardware. Cues remain text plus the band colours (green in band, yellow near, slow pulse when attention is needed, gray when readings are missing) and the existing vibration with its cooldown. Low heart rate alone never asks for more effort.
+
+Tests for this revision: 60 pass in the fenix7pro simulator (home and two-press start, plan parsing and acceptance, avatar mapping, and all earlier coaching tests). Not verified: how the screens look, real buttons and haptics, and the plan request from a real watch.

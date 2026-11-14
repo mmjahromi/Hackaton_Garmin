@@ -46,7 +46,6 @@ fi
 echo "Starting the simulator..."
 pkill -f "bin/monkeydo" 2>/dev/null || true
 pkill -f "bin/shell --transport" 2>/dev/null || true
-pkill -f "monkeybrains" 2>/dev/null || true
 pkill -f "ConnectIQ.app/Contents/MacOS/simulator" 2>/dev/null || true
 sleep 2
 unset JAVA_TOOL_OPTIONS

@@ -1083,3 +1083,397 @@ tr.fresh td {
   .shared-facts { grid-template-columns: 1fr 1fr; }
   .shared-header, .shared-nav, .sharing-note, .shared-main { padding-left: 16px; padding-right: 16px; }
 }
+
+/* ---- Today screen (stay-active home) ----------------------------------- */
+
+.sa {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 8px 24px 88px;
+}
+
+.sa .block {
+  padding-top: 40px;
+}
+
+.sa-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.sa-mode button[aria-pressed] {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-2);
+}
+
+.sa-mode button[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.sa-banner {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--series);
+  background: var(--fresh);
+  font-size: 14px;
+}
+
+.sa-banner.warn {
+  border-left-color: var(--watch);
+}
+
+.sa-goal {
+  padding-top: 16px;
+}
+
+.sa-goal-name,
+.sa-big {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.sa-goal-name {
+  font-size: 28px;
+}
+
+.sa-sub {
+  margin-top: 2px;
+  color: var(--ink-2);
+}
+
+.sa-today {
+  margin-top: 40px;
+  padding: 32px 36px 30px;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--series) 14%, transparent), transparent 55%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.sa .sa-today {
+  padding-top: 32px;
+}
+
+.sa-big {
+  margin-top: 18px;
+  font-size: clamp(40px, 7vw, 76px);
+  line-height: 1;
+}
+
+.sa-why {
+  margin-top: 18px;
+  max-width: 60ch;
+  font-size: 17px;
+  text-wrap: pretty;
+}
+
+.sa-basis {
+  margin: 10px 0 20px;
+  padding-left: 18px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.sa-secondary {
+  padding: 0 16px;
+  border: 1px solid var(--ink-3);
+  border-radius: 8px;
+}
+
+.sa-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sa-adjust {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 6px;
+}
+
+.sa-form {
+  display: grid;
+  gap: 20px;
+  padding-top: 18px;
+  max-width: 760px;
+}
+
+.sa-intro {
+  font-size: 17px;
+  max-width: 56ch;
+}
+
+.sa-fixed span {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.sa-fixed small {
+  margin-left: 8px;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.sa-form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.sa-form legend,
+.sa-row label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.sa-form legend {
+  padding: 0 0 8px;
+}
+
+.sa-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.sa-row label {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.sa-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sa-chips label,
+.sa-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.sa-chips label {
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.sa-chips label:has(input:checked) {
+  border-color: var(--ink);
+  background: color-mix(in srgb, var(--series) 12%, transparent);
+}
+
+.sa-chips input,
+.sa-check input {
+  width: 18px;
+  min-height: 0;
+  height: 18px;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.sa-check {
+  align-items: flex-start;
+  font-size: 14px;
+  max-width: 68ch;
+}
+
+.sa-check input {
+  margin-top: 2px;
+}
+
+.sa-watch {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 0 40px;
+}
+
+.sa-watch li {
+  display: flex;
+  gap: 14px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sa-watch .dot {
+  margin-top: 7px;
+  flex: none;
+}
+
+.dot.on {
+  background: var(--good);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.dot.off {
+  background: var(--fix);
+  animation: none;
+}
+
+.sa-watch-name {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.sa-watch-state {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.sa-watch .fine {
+  margin-top: 2px;
+}
+
+.sa-live {
+  margin-top: 6px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 15px;
+}
+
+.sa-facts {
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  border-top: 0;
+}
+
+.sa-facts > div,
+.sa-facts > div:nth-child(odd),
+.sa-facts > div:nth-child(even) {
+  padding: 16px 20px 14px 0;
+  border-left: 0;
+}
+
+/* Fourteen days, oldest first. Each day says what happened in words; the
+   mark's shape differs as well as its colour. */
+.sa-strip {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.sa-strip li {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 10px 8px 12px;
+  background: var(--surface);
+  font-size: 12px;
+  min-width: 0;
+}
+
+.sa-strip-date {
+  color: var(--ink-3);
+}
+
+.sa-strip-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.sa-strip .done .sa-strip-mark,
+.sa-strip li.done .sa-strip-mark {
+  background: var(--series);
+}
+
+.sa-strip li.missed .sa-strip-mark {
+  background: none;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px var(--ink-3);
+}
+
+.sa-strip li.planned .sa-strip-mark {
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--series);
+}
+
+.sa-strip li.rest .sa-strip-mark {
+  width: 14px;
+  height: 2px;
+  margin: 6px 0;
+  border-radius: 1px;
+}
+
+.sa-strip-text {
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+.sa-strip li.done .sa-strip-text {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.sa-meal {
+  padding-top: 18px;
+  max-width: 720px;
+}
+
+.sa-meals {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  max-width: 720px;
+}
+
+.sa-meals li {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.sa-meals li span:first-child {
+  flex: 1;
+}
+
+.sa-meals .text-button {
+  min-height: 0;
+}
+
+@media (max-width: 560px) {
+  .sa {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .sa-today {
+    padding: 24px 20px 22px;
+    border-radius: 16px;
+  }
+
+  .sa-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

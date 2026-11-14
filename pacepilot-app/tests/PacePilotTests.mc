@@ -368,6 +368,15 @@ class DrawingProbe {
         Test.assert(y>=0 && y<=260);
         texts.add(text);
     }
+    function getWidth() { return 260; }
+    function getHeight() { return 260; }
+    function getFontHeight(font) { return font == Toybox.Graphics.FONT_TINY ? 26 : 22; }
+    function setClip(x,y,w,h) { Test.assert(w >= 0 && h >= 0); }
+    function fillCircle(x,y,r) { Test.assert(r >= 0); }
+    function fillEllipse(x,y,rx,ry) { Test.assert(rx >= 0 && ry >= 0); }
+    function fillRoundedRectangle(x,y,w,h,r) { Test.assert(w >= 0 && h >= 0); }
+    function drawLine(x,y,a,b) {}
+
 }
 
 (:test)

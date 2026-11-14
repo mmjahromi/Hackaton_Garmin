@@ -41,3 +41,27 @@ The API keeps the newest session per app/mode for up to 24 h, with atomic Redis 
 ## Redis integration check
 
 With local `redis-server` and `redis-cli` installed, run `npm run test:redis`. This starts a temporary password-protected Redis bound to loopback, executes the production Lua storage code, and shuts it down. It verifies concurrent/out-of-order packets, completion protection, separate channels, bounded history, and expiry configuration without touching production data. Latest result: 1/1 integration test passes, in addition to 54/54 standard tests.
+
+## Stay-active revision
+
+The first tab, **Today**, answers four questions in order: what is my goal, what is suggested today and why, is my watch sending data, and how consistent have I been. A fifth section logs meals and shows an optional energy estimate.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/overview[?mode=demo&today=YYYY-MM-DD]` | Everything the Today tab shows, in one request |
+| `GET` / `PUT /api/profile` | Goal (only `stay_active`), activities, days, usual minutes, experience, optional health details, "Send plan to watch" consent |
+| `GET /api/plan`, `POST /api/plan/decision` | Today's suggestion with its reason; accept, adjust, reschedule, easier, rest |
+| `GET /api/watch-config` | The plan summary PacePilot fetches on request; `available:false` without consent |
+| `GET` / `POST /api/heartbeat` | Idle check-in from a watch app (endpoint only; no watch sends it yet) |
+| `GET` / `POST` / `DELETE /api/meals` | User-entered calories |
+| `POST /api/demo/reset` | Clears changes made while exploring the demo |
+
+**Plan rules** (`lib/plan.js`): repeat the usual length by default; after three sessions rated easy or about right with no high soreness or low energy, offer 10% more (rounded to 5 minutes, at most usual + 15, never above 90); after a too-hard session, high soreness or low energy, offer 25% less and swap run/walk for a walk; after two missed planned days in a row, offer a restart at 60% with no catch-up; on unplanned days suggest rest with an optional 10-minute walk. Heart rate never changes a suggestion, nothing applies without a decision, and days before the preferences were first saved are never counted as missed.
+
+**Energy estimate** (`lib/energy.js`): Mifflin-St Jeor resting estimate times an activity factor for a typical day (1.2, 1.375 or 1.55), shown as a range of about 10% either way. Shown only when age (18+), height, weight, sex for the formula and typical day are all given. Garmin's activity calories and entered intake are separate figures and are never added to the estimate.
+
+**Demo data** (`lib/demo.js`): a two-week history generated relative to today with no randomness: six sessions (one too hard with sore legs, one with no heart-rate reading, one with most readings lost), two missed planned days and five meals. It is served from the generator under `?mode=demo`, marked `demo: true`, stored under `gut-train:demo:*` keys, and never read in real mode. Real mode with no data shows empty states.
+
+**Connection states**: waiting for watch data, receiving live activity, workout paused, connection stale or interrupted (no update for 20 seconds), workout completed. These describe data reaching the dashboard; the page says plainly that it cannot tell whether a watch is paired.
+
+Tests: `npm test` runs 81 (plan rules, estimate arithmetic, validation, consent gate, demo isolation, plus the earlier live-feed and insight tests).
