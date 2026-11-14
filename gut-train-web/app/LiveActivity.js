@@ -1,4 +1,5 @@
 'use client';
+import LiveRunner from './LiveRunner';
 import {useEffect,useState} from 'react';
 import {liveState,hrSegments,stressView,connectionView} from '../lib/live';
 const clock=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
@@ -52,6 +53,7 @@ export default function LiveActivity() {
     <h3>{s.app==='pacepilot'?'PacePilot':'Gut Train'} {s.mode==='DEMO'?'· DEMO':''} · {state==='stale'?'Signal stale':state}</h3>
     <p><strong>{fresh&&s.heartRate!=null?s.heartRate+' bpm':'HR unavailable'}</strong> · {clock(s.elapsedSec)} elapsed</p>
     <p>Last update {Math.max(0,Math.floor(now-s.receivedAt))} seconds ago · Session {s.sessionId}</p>
+    <LiveRunner session={s} now={now} offline={error}/>
     <dl className="shared-facts">
      <div className="stress-fact"><dt>Stress</dt><dd>
       {stress ? stress.fresh ? <>{stress.value} · {stress.band}<small>read {ageLabel(stress.ageSec)}</small></> :

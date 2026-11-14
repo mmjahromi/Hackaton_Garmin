@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const url=s=>'data:text/javascript;base64,'+Buffer.from(s).toString('base64');
+const live=url(await readFile(new URL('./live.js',import.meta.url),'utf8'));
+const {liveInsights}=await import(url((await readFile(new URL('./liveInsights.js',import.meta.url),'utf8')).replace("'./live.js'",JSON.stringify(live))));
+const s={status:'active',sampledAt:100,receivedAt:100,elapsedSec:150,goalSec:1500,heartRate:114,speedMps:2,samples:[]};
+test('progress uses recorded time and movement requires speed',()=>{assert.equal(liveInsights(s,100).progress,10);assert.equal(liveInsights(s,100).moving,true);assert.equal(liveInsights({...s,speedMps:null},100).moving,false)});
+test('stale, paused, completed and offline feeds never animate',()=>{for(const status of ['paused','completed'])assert.equal(liveInsights({...s,status},100).moving,false);assert.equal(liveInsights(s,121).moving,false);assert.equal(liveInsights(s,100,true).moving,false)});
+test('missing HR has no fabricated effort assessment and progress is bounded',()=>{assert.ok(liveInsights({...s,heartRate:null},100).notes.some(n=>n.includes('unavailable')));assert.equal(liveInsights({...s,elapsedSec:2000},100).progress,100)});
