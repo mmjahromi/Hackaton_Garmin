@@ -11,8 +11,8 @@ fi
 mkdir -p bin
 if [[ "${2:-}" == '--test' ]]; then
     "$sdk_dir/bin/monkeyc" -f monkey.jungle -d fenix7pro_sim \
-        -o bin/RaceForge-tests.prg -y "$key_path" -w -l 2 -t 2>&1 | tee bin/test-build.log
+        -o bin/RaceForge-tests.prg -y "$key_path" -w -l 0 -t 2>&1 | tee bin/test-build.log
 else
     "$sdk_dir/bin/monkeyc" -f monkey.jungle -d fenix7pro_sim \
-        -o bin/RaceForge.prg -y "$key_path" -w -l 2 2>&1 | tee bin/build.log
+        -o bin/RaceForge.prg -y "$key_path" -w -l 0 2>&1 | tee bin/build.log
 fi
