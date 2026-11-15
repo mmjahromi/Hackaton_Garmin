@@ -282,7 +282,7 @@ export default function Home() {
           {!open && !adjusting && (
             <div className="form-actions">
               <button type="button" className="sa-secondary" disabled={busy} onClick={() => {
-                setChange({ durationMin: profile.durationMin, activity: profile.activities[0], toDate: localDate(1) });
+                setChange({ durationMin: plan.nextSessionSuggestion?.durationMin ?? profile.durationMin, activity: plan.nextSessionSuggestion?.activity ?? profile.activities[0], toDate: localDate(1) });
                 setAdjusting(true);
               }}>Plan another session</button>
               <p className="fine">Your completed workout stays in history. Another session is optional.</p>
@@ -290,6 +290,13 @@ export default function Home() {
           )}
           {adjusting && (
             <div className="sa-adjust">
+              {!open && plan.nextSessionSuggestion && (
+                <div role="note">
+                  <p><strong>Optional starting point:</strong> {plan.nextSessionSuggestion.durationMin} min {ACTIVITY[plan.nextSessionSuggestion.activity] ?? "walk"}.</p>
+                  <p>{plan.nextSessionSuggestion.reason} Change the activity or minutes below to suit you. Rest is also a valid choice.</p>
+                  <button type="button" className="text-button" disabled={busy} onClick={() => setChange(current => ({ ...current, durationMin: plan.nextSessionSuggestion.durationMin, activity: plan.nextSessionSuggestion.activity }))}>Use suggested settings</button>
+                </div>
+              )}
               <div className="sa-row">
                 <label>Minutes
                   <input type="number" min="10" max="90" step="5" value={change.durationMin} onChange={e => setChange({ ...change, durationMin: e.target.value })} />

@@ -266,3 +266,13 @@ test('additional session validation rejects unfinished, stale and incomplete cho
   assert.equal(demo.demo, true);
   assert.match(demo.id, /^stay_active:demo:/);
 });
+
+test('additional-session suggestion responds to feedback without increasing preferred duration', () => {
+  const id = plan([]).suggestion.id;
+  const tired = plan([session(0, { planId: id, effort: 2, energy: 0 }), session(-1)]);
+  assert.deepEqual([tired.nextSessionSuggestion.activity, tired.nextSessionSuggestion.durationMin], ['walk', 15]);
+  assert.match(tired.nextSessionSuggestion.reason, /recovery/);
+  const good = plan([session(0, { planId: id }), session(-1), session(-2)], { profile: profile({ durationMin: 40 }) });
+  assert.equal(good.nextSessionSuggestion.durationMin, 40);
+  assert.equal(plan([]).nextSessionSuggestion, undefined);
+});

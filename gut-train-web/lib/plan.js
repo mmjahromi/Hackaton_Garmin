@@ -97,8 +97,22 @@ export function buildPlan({ profile, sessions = [], days = [], decisions = [], t
     suggestion.basis = ['Last three sessions felt easy or about right','No high soreness or low energy reported','Duration change is only an offer'];
   }
   if (!planned(today)) suggestion = { ...suggestion, kind:'rest', activity:'walk', durationMin:10, reason:'Rest today, with an optional short easy walk.', basis:['Today is not a planned workout day'] };
+  const nextSessionSuggestion = {
+    activity: suggestion.activity ?? 'walk',
+    durationMin: Math.min(usual, suggestion.durationMin || 10),
+    reason: suggestion.reason,
+    basis: suggestion.basis,
+  };
+  if (suggestion.durationMin > usual) {
+    nextSessionSuggestion.reason = 'Keep an additional session within your preferred duration. There is no need to add more today.';
+  }
+  if (last?.effort === 2 || last?.soreness === 2 || last?.energy === 0 || recovery) {
+    nextSessionSuggestion.activity = nextSessionSuggestion.activity === 'run_walk' ? 'walk' : nextSessionSuggestion.activity;
+    nextSessionSuggestion.durationMin = Math.min(nextSessionSuggestion.durationMin, Math.max(10, Math.round(usual * 0.75)));
+    nextSessionSuggestion.reason = 'Recent feedback calls for recovery. If you choose another session, keep it easy; resting is also an option.';
+  }
   const decision = choice(today) ?? scheduled(today);
   if (decision?.suggestion) suggestion = { ...decision.suggestion, demo };
   if (recent.some(s=>s.planId===suggestion.id) || decision?.action==='done') suggestion = { ...suggestion, status:'done', reason:'You completed this planned session.', basis:[...suggestion.basis,'Completed watch session'] };
-  return { today, suggestion, week, consistency, demo };
+  return { today, suggestion, week, consistency, demo, ...(suggestion.status === 'done' ? { nextSessionSuggestion } : {}) };
 }
