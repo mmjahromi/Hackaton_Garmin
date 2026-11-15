@@ -1,10 +1,10 @@
 # PacePilot + Gut Train dashboard
 
-One dashboard for two separate Garmin watch apps. PacePilot supports manageable run/walk sessions and recovery check-ins; Gut Train supports following a chosen fueling plan and reflecting on gut comfort. The overview shows live session totals, a confirmed next goal, check-ins, and fueling/tolerance history. Recovery and Nutrition tabs expose each app’s details. Demo rows are labeled and excluded from live overview totals.
+A shared Next.js dashboard for two separately installed Garmin watch apps. Current tabs are **Today**, **Workouts**, and **Fuelling sessions**. [STATUS.md](../STATUS.md) is the main reference for feature scope, verification evidence, privacy, and remaining gaps.
 
-## Run in VS Code
+## Run locally
 
-Open this folder in VS Code. With Node.js 22+ and npm installed, run:
+Use Node.js **22+** and npm. Open this directory in VS Code, then:
 
 ```sh
 npm ci
@@ -12,58 +12,73 @@ npm test
 npm run dev
 ```
 
-Open http://localhost:3000. For a production check, run `npm run build` and `npm start`. The 54 automated tests cover existing rules/APIs, the new PacePilot endpoint, retry deduplication, demo isolation, retention, validation, and nutrition logs. Local production HTTP smoke tests also verify both apps’ active, paused, and completed telemetry. No screenshots or visual checks were performed for this revision.
+Open `http://localhost:3000`. For production checks, run `npm run build`, then `npm start`. `npm run test:redis` separately requires local `redis-server` and `redis-cli`; it starts an isolated password-protected loopback Redis, runs the production live-storage Lua checks, and shuts it down without touching production data.
 
-## Data and integration
+Dependencies are declared in [package.json](package.json): Next.js 16.4.6, React 19, plain JavaScript/CSS. No credentials are needed for process-memory development. Optional Redis variables are `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, with `KV_REST_API_URL` / `KV_REST_API_TOKEN` aliases. Without both URL and token, data is kept in process memory and disappears on restart; it is unsuitable for durable serverless storage.
 
-- `GET/POST /api/pace-sessions`: PacePilot schema-v1 summaries, plus optional energy, soreness, effort, routine, and nextGoalSec. Missing feedback remains unknown. Retries replace the same mode/session ID. Retains 200 records.
-- `GET/POST /api/sessions`: Gut Train summaries, plus foodType, portionG, drinkIntervalS, bounded fuelLog (32 entries), and targetConfirmed. Retains 200 records.
-- Legacy `/api/days` and `/api/goal` remain compatible. This watch revision keeps daily activity local rather than automatically uploading it.
-- Each watch app asks separately whether to share its session; both default off. They send via the paired phone using Garmin Communications. No Garmin Health cloud API is used.
-- The apps are separate installations. The dashboard combines their summaries; it does not launch apps on the watch, link accounts, infer causal relationships, or push goals back to either app.
+Deploy to the existing Vercel project only when authorized:
 
-Optional Redis environment variables: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (or `KV_REST_API_URL` and `KV_REST_API_TOKEN`). Without Redis, data stays in process memory and disappears on restart. Never commit credentials.
+```sh
+npx vercel deploy --prod --yes
+```
 
-The live prototype is a shared, unauthenticated hackathon dashboard at https://gut-train-web.vercel.app. Uploaded summaries are public. `INGEST_KEY` can restrict writes, but the supplied watch builds do not include a key and will show a sharing failure if it is required. Authentication, per-user isolation, private reads, and secure device enrollment are required before a personal-data launch. Existing prototype goal controls do not configure watch targets.
+The configured public address is [gut-train-web.vercel.app](https://gut-train-web.vercel.app). Prior records report deployment; this documentation update did not inspect or redeploy production. Website deployment does not update installed watch PRGs.
 
-Deploy to the existing Vercel project with `npx vercel deploy --prod --yes` when authorized and signed in.
+## Current features
 
-## Live workout feed (current revision)
+- **Today** (`app/Home.js`): preferences, suggestion and reason, explicit plan decisions, watch-data states/check-ins, two-week consistency, meals, optional energy estimate, completed-workout food/drink totals from both apps, labeled isolated demo. Overview refreshes every three seconds.
+- **Workouts** (`app/SharedDashboard.js`, `app/LiveActivity.js`): live workout chart and sensor readings, reported feedback/next goal, and completed session histories. Summary polling is every five seconds; live polling every two.
+- **Fuelling sessions** (`app/Dashboard.js`): Gut Train history, sensor context, fixed-rule insights, legacy daily activity display and race/fueling goal controls. The nutrition component polls its endpoints every two seconds. These goal controls do not change watch settings.
+- **Plans** (`lib/plan.js`): only `stay_active`; explicit accept/adjust/reschedule/easier/rest decisions. Recent activity and feedback can offer longer, shorter, restart, or rest sessions. HR does not drive progression. [Exact rules](../STATUS.md#dashboard-plans-meals-and-demo) and known duration/import limits are recorded centrally.
+- **Meals and energy** (`lib/meals.js`, `lib/energy.js`): manual calorie entries and an optional adult Mifflin–St Jeor estimate × a typical-day activity factor. The ±10% display is approximate, not a confidence interval. Intake and reported activity calories are separate figures, never added to the estimate.
+- **Demo** (`lib/demo.js`): deterministic history relative to today; separate demo profile/decisions/meals and reset. Today demo reads no real activity, telemetry, or check-ins. Existing summary APIs can retain labeled demo records, but current watch DEMO workouts suppress uploads.
 
-Enable **Share live + summary** during watch setup, then start a LIVE session with the paired phone connected to the Internet. This explicitly shares heart rate and workout metrics to the public demo. It defaults off. DEMO sessions remain local in the watch builds; API tests use labeled synthetic packets only against isolated/local storage.
+## API map
 
-Each watch uploads at most one normal snapshot every 5 seconds, with immediate status-change attempts and a single request in flight. The dashboard live panel polls every 2 seconds. This is near-live HTTP telemetry via Garmin Communications, not a guaranteed low-latency socket. Slow Bluetooth/phone/network connections can delay updates. No raw GPS coordinates are uploaded.
+| Endpoint | Methods | Purpose and integration |
+| --- | --- | --- |
+| `/api/overview` | GET | Aggregate Today data; optional `mode=demo` and `today=YYYY-MM-DD` |
+| `/api/profile` | GET, PUT | Activity preferences, optional estimate inputs, Send plan to watch consent |
+| `/api/plan` | GET | Today's suggestion and consistency |
+| `/api/plan/decision` | POST | Accept, adjust, reschedule, easier, rest |
+| `/api/watch-config` | GET | On-request plan response; `app=pacepilot` or `app=guttrain` also records an app-name check-in; `mode=demo` returns a labeled demo offer |
+| `/api/heartbeat` | GET, POST | Check-in records; no periodic idle watch sender is implemented |
+| `/api/meals` | GET, POST, DELETE | User-entered calorie log |
+| `/api/demo/reset` | POST | Clear demo profile, decisions, and entered meals only |
+| `/api/pace-sessions` | GET, POST | Schema-v1 PacePilot summaries, feedback and optional fluidMl/carbsG totals; upsert by mode/session ID; newest 200 |
+| `/api/sessions` | GET, POST | Gut Train summaries, confirmed target and up to 32 timed food entries; append; newest 200 |
+| `/api/live` | GET, POST | Validated live packets and bounded per-app/mode history, separate from summaries |
+| `/api/days` | GET, POST | Legacy date-upserted activity records; newest 60; current watches do not upload days |
+| `/api/goal` | GET, PUT | Legacy event/race/fueling dashboard goal; no watch configuration push |
 
-PacePilot sends filtered HR when ready, elapsed time, goal, estimated moving time, speed, and active/paused/completed state. Gut Train sends HR, elapsed time, distance, speed, logged carbs/fluids, and state. Paused/completed packets carry no current HR. The dashboard shows the last120 snapshots (about 10 min at the nominal rate); gaps are not interpolated. After 20 sec without a fresh sample it marks the stream stale and stops presenting old HR as current. End delivery is best effort: if connectivity is lost while ending, the dashboard becomes stale rather than inventing completion.
+Current schemas and validation live in route files and `lib/profile.js`, `lib/pace.js`, `lib/live.js`, `lib/meals.js`. Units remain explicit in names: seconds, grams, milliliters, meters, m/s, bpm, and Unix seconds. Optional signed temperatures distinguish missing from real 0 °C. Test discovery is `lib/*.test.mjs`; the Redis integration file is separate.
 
-The API keeps the newest session per app/mode for up to 24 h, with atomic Redis ordering checks to ignore duplicate, delayed, or post-completion packets. This is a shared hackathon feed, not multi-user private tracking. Existing summaries remain separate. The new watch binaries must be installed; deploying the website does not update the watch.
+## Plan transfer and live updates
 
-## Redis integration check
+Gut Train calls watch-config when opened with its app name. PacePilot first shows an opening screen; START activates it and then calls watch-config. Nothing is sent before that START. This records server reachability, not continuous phone pairing. Gut Train uses it for a connection label. PacePilot offers a consent-gated real plan, or explicitly requests a labeled demo offer if a successful response has no real plan. Accepting a demo offer does not select the workout's LIVE/DEMO mode. No demo plan ID is reported as real completion. Accepted duration is capped at 60 minutes in PacePilot; the dashboard permits up to 90. There is no background plan push, nutrition-plan import, or sport-specific coaching switch from an activity label.
 
-With local `redis-server` and `redis-cli` installed, run `npm run test:redis`. This starts a temporary password-protected Redis bound to loopback, executes the production Lua storage code, and shuts it down. It verifies concurrent/out-of-order packets, completion protection, separate channels, bounded history, and expiry configuration without touching production data. Latest result: 1/1 integration test passes, in addition to 54/54 standard tests.
+LIVE telemetry requires separate session sharing consent, default off. Normal snapshot attempts are at most every five seconds, lifecycle changes can attempt immediately, and each sender allows one request in flight. HR, elapsed time, app-specific workout metrics, and optional timestamped Garmin stress history are shared; raw GPS coordinates are not. Paused/completed packets suppress current HR and stress.
 
-## Stay-active revision
+The live panel marks an active/paused stream stale when received or sample age exceeds 20 seconds. HR gaps are preserved. Stress is read by the watch at most once a real minute and labeled old beyond five minutes. An unavailable reading remains unknown. Completion delivery is best effort, so a disconnected watch may leave a stale stream rather than a confirmed end.
 
-The first tab, **Today**, answers four questions in order: what is my goal, what is suggested today and why, is my watch sending data, and how consistent have I been. A fifth section logs meals and shows an optional energy estimate.
+`lib/store.js` retains the newest session per app/mode (four shared channels), 120 snapshots per channel, and a 24-hour visibility window. Redis uses atomic Lua compare/update checks for ordering, duplicates, and completed-session protection. Summary storage remains separate. This supports one shared demo stream per app/mode, not multiple identified users.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /api/overview[?mode=demo&today=YYYY-MM-DD]` | Everything the Today tab shows, in one request |
-| `GET` / `PUT /api/profile` | Goal (only `stay_active`), activities, days, usual minutes, experience, optional health details, "Send plan to watch" consent |
-| `GET /api/plan`, `POST /api/plan/decision` | Today's suggestion with its reason; accept, adjust, reschedule, easier, rest |
-| `GET /api/watch-config` | The plan summary PacePilot fetches on request; `available:false` without consent |
-| `GET` / `POST /api/heartbeat` | Idle check-in from a watch app (endpoint only; no watch sends it yet) |
-| `GET` / `POST` / `DELETE /api/meals` | User-entered calories |
-| `POST /api/demo/reset` | Clears changes made while exploring the demo |
+## Privacy and storage limits
 
-**Plan rules** (`lib/plan.js`): repeat the usual length by default; after three sessions rated easy or about right with no high soreness or low energy, offer 10% more (rounded to 5 minutes, at most usual + 15, never above 90); after a too-hard session, high soreness or low energy, offer 25% less and swap run/walk for a walk; after two missed planned days in a row, offer a restart at 60% with no catch-up; on unplanned days suggest rest with an optional 10-minute walk. Heart rate never changes a suggestion, nothing applies without a decision, and days before the preferences were first saved are never counted as missed.
+This site is shared and unauthenticated. Uploaded activity, summaries, profile information, and meal data are not private. **Send plan to watch** controls real plan availability; **Share live + summary** controls each watch session's uploads. App-name check-ins happen separately (after START activation in PacePilot). Daily/background watch uploads and watch DEMO workout uploads are disabled.
 
-**Energy estimate** (`lib/energy.js`): Mifflin-St Jeor resting estimate times an activity factor for a typical day (1.2, 1.375 or 1.55), shown as a range of about 10% either way. Shown only when age (18+), height, weight, sex for the formula and typical day are all given. Garmin's activity calories and entered intake are separate figures and are never added to the estimate.
+Optional `INGEST_KEY` requires `x-api-key` on the session, live, day, and heartbeat write routes. It does not authenticate reads, profile/meal/plan decisions, legacy goal writes, demo reset, or watch-config check-ins. The supplied watches send no key, so enabling it breaks their protected uploads. There are no accounts, private reads, secure enrollment, or per-user storage. Never commit credentials or use this prototype as private health-data storage.
 
-**Demo data** (`lib/demo.js`): a two-week history generated relative to today with no randomness: nine sessions (one too hard with sore legs, one at a faster pace, one with no heart-rate reading), two missed planned days and five meals. Seven of the sessions carry an average heart rate and speed at about the same walking pace, so the fitness trend has something to compare. It is served from the generator under `?mode=demo`, marked `demo: true`, stored under `gut-train:demo:*` keys, and never read in real mode. Real mode with no data shows empty states.
+Redis retention: 200 summaries per app, 60 days, 60 plan decisions per real/demo namespace, 300 meals per namespace, and newest check-in per app. The real profile and live channels are shared. Local memory fallback follows the same product boundaries but is lost on restart. Meal/decision/profile writes are not an atomic multi-user system.
 
-**Fitness trend** (`lib/efficiency.js`): heartbeats per km, worked out as average heart rate divided by speed over the seconds the watch had both a heart rate and a moving GPS speed. Lower means the heart works less for the same pace. Only sessions within 15% of the person's usual (median) pace and with at least 5 minutes of usable readings are compared; the rest are counted and named as left out. It needs at least four comparable sessions, compares the earlier half with the recent half, and calls a change of less than 3% "steady". Age, height and weight are not used. Heat, hills, sleep and caffeine all move heart rate, and the page says so.
+## Verification and gaps
 
-**Connection states**: waiting for watch data, receiving live activity, workout paused, connection stale or interrupted (no update for 20 seconds), workout completed. These describe data reaching the dashboard; the page says plainly that it cannot tell whether a watch is paired.
+Commit `c5fa03b` records **83 standard tests passing**; the preceding stay-active revision records a successful production build/deployment. Earlier debugging records report **1 separate Redis integration test** passing. No suites/builds were rerun for this documentation update: `npm` is unavailable and `node_modules` is absent. See [the evidence register](../STATUS.md#verification-evidence), rather than treating old 35/54-test counts as current.
 
-Tests: `npm test` runs 89 (fitness trend, plan rules, estimate arithmetic, validation, consent gate, demo isolation, plus the earlier live-feed and insight tests).
+Physical-watch/phone acceptance, current screen/button inspection, private multi-user support, durable watch upload queues, periodic idle heartbeat, and broader watch plan synchronization remain open. The complete [gap list](../STATUS.md#remaining-gaps-and-acceptance) distinguishes unbuilt features from implemented but unverified behavior.
+
+## Fitness trend: heartbeats per km
+
+`lib/efficiency.js` works out heartbeats per km as average heart rate divided by speed, over the seconds the watch had both a heart rate and a moving GPS speed. Lower means the heart works less for the same pace. Only sessions within 15% of the person's usual (median) pace and with at least 5 minutes of usable readings are compared; the rest are counted and named as left out. It needs at least four comparable sessions, compares the earlier half with the recent half, and calls a change of less than 3% "steady". Age, height and weight are not used. Heat, hills, sleep and caffeine all move heart rate, and the page says so.
+
+The demo history (`lib/demo.js`) has nine sessions over two weeks, seven of them at about the same walking pace with an average heart rate, so the demo trend has something to compare.

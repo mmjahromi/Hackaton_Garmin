@@ -144,3 +144,14 @@ the implemented architecture and supersedes the proposed timer/model details.
   advice is supplied independently; a high HR cannot create EASE_OFF or WALK.
 - Transfer model, renderer, animator, adapter and workout context. Keep App,
   View, delegates, demo controller and test files in this standalone prototype.
+
+## Implemented milestone 3
+
+The weekly-adventure entrypoint now wraps the existing avatar. See README.md and
+MILESTONE3.md for current controls, 21 simulator tests and integration ownership.
+A small summit and four/five real plan checkpoints lead through mission selection,
+shared-controller workouts, explicit completion and persistent LIVE progress.
+First-launch personalization, local check-ins and confirmed missed/fatigue options
+are implemented. DEMO progress is separate and temporary. The actual shared HR/
+GPS provider, pipeline, coach, clock and alert service are imported unchanged.
+Only weekly activity is implemented; other race journeys and web exchange are future.

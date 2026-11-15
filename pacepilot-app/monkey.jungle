@@ -1,2 +1,5 @@
 project.manifest = manifest.xml
 base.sourcePath = source;tests
+
+# Shared pure journey model and summit art; no standalone app/controller.
+base.sourcePath = $(base.sourcePath);../prototypes/raceforge-avatar/source/WeeklyJourney.mc;../prototypes/raceforge-avatar/source/JourneyStorage.mc;../prototypes/raceforge-avatar/source/SummitRenderer.mc

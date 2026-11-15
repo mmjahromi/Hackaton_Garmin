@@ -230,7 +230,7 @@ export default function Home() {
   const now = data.now + tick;
   const needsSetup = !profile;
   const showForm = editing || needsSetup;
-  const open = !["done", "rest_chosen"].includes(suggestion.status);
+  const open = suggestion.status !== "done";
 
   return (
     <main className="sa" id="main">
@@ -246,6 +246,21 @@ export default function Home() {
       )}
       {offline && <p className="sa-banner warn" role="status">Dashboard offline. Showing the last update; retrying.</p>}
       {message && <p className="error" role="alert">{message}</p>}
+
+      <section className="block" aria-labelledby="settings-h">
+        <div className="block-head"><h2 id="settings-h">User settings</h2></div>
+        <div className="form-actions">
+          <button type="button" onClick={() => startEditing(profile || EMPTY_PROFILE)}>Profile and preferences</button>
+          <button type="button" disabled={busy || demo} aria-pressed={profile?.shareToWatch === true}
+            onClick={async () => {
+              if (!profile) { startEditing(EMPTY_PROFILE); return; }
+              await send("/api/profile", "PUT", { ...profile, shareToWatch: !profile.shareToWatch });
+            }}>{profile?.shareToWatch ? "Stop sharing plans with watch" : "Share plans with watch"}</button>
+        </div>
+        <p>Plan sharing: {profile?.shareToWatch ? "On" : "Off"}. Open PacePilot and choose “Get today’s plan” to fetch your suggestion.</p>
+        <p className="fine">To send activity back to this dashboard, separately enable “Share live + summary” on the watch before starting a LIVE workout. This button does not remotely enable watch uploads. A paired phone with Internet is required. Shared activity is public on this hackathon demo.</p>
+        {demo && <p className="fine">Switch to Your data to change real watch sharing.</p>}
+      </section>
 
       {/* 1. What is my goal? */}
       <section className="block" aria-labelledby="goal-h">
@@ -346,13 +361,29 @@ export default function Home() {
               <button type="button" className="sa-secondary" disabled={busy} onClick={() => {
                 setChange({ durationMin: Math.max(10, suggestion.durationMin), activity: suggestion.activity ?? "walk", toDate: localDate(1) });
                 setAdjusting(true);
-              }}>Adjust or move</button>
+              }}>{suggestion.kind === "rest" ? "Choose a goal" : "Customize session"}</button>
               {suggestion.kind === "workout" && suggestion.durationMin > 10 && <button type="button" className="sa-secondary" disabled={busy} onClick={() => decide("easier")}>Make it easier</button>}
               {suggestion.kind === "workout" && <button type="button" className="sa-secondary" disabled={busy} onClick={() => decide("rest")}>Rest today</button>}
             </div>
           )}
-          {open && adjusting && (
+          {!open && !adjusting && (
+            <div className="form-actions">
+              <button type="button" className="sa-secondary" disabled={busy} onClick={() => {
+                setChange({ durationMin: plan.nextSessionSuggestion?.durationMin ?? profile.durationMin, activity: plan.nextSessionSuggestion?.activity ?? profile.activities[0], toDate: localDate(1) });
+                setAdjusting(true);
+              }}>Plan another session</button>
+              <p className="fine">Your completed workout stays in history. Another session is optional.</p>
+            </div>
+          )}
+          {adjusting && (
             <div className="sa-adjust">
+              {!open && plan.nextSessionSuggestion && (
+                <div role="note">
+                  <p><strong>Optional starting point:</strong> {plan.nextSessionSuggestion.durationMin} min {ACTIVITY[plan.nextSessionSuggestion.activity] ?? "walk"}.</p>
+                  <p>{plan.nextSessionSuggestion.reason} Change the activity or minutes below to suit you. Rest is also a valid choice.</p>
+                  <button type="button" className="text-button" disabled={busy} onClick={() => setChange(current => ({ ...current, durationMin: plan.nextSessionSuggestion.durationMin, activity: plan.nextSessionSuggestion.activity }))}>Use suggested settings</button>
+                </div>
+              )}
               <div className="sa-row">
                 <label>Minutes
                   <input type="number" min="10" max="90" step="5" value={change.durationMin} onChange={e => setChange({ ...change, durationMin: e.target.value })} />
@@ -363,21 +394,21 @@ export default function Home() {
                   </select>
                 </label>
                 <button type="button" className="primary" disabled={busy} onClick={async () => {
-                  if (await decide("adjust", { durationMin: Number(change.durationMin), activity: change.activity })) setAdjusting(false);
-                }}>Use this</button>
+                  if (await decide(open ? "adjust" : "new", { durationMin: Number(change.durationMin), activity: change.activity })) setAdjusting(false);
+                }}>{!open ? "Save new session" : "Save changes"}</button>
               </div>
               <div className="sa-row">
-                <label>Or move it to
+                {open && <><label>Or move it to
                   <input type="date" min={localDate(1)} max={localDate(14)} value={change.toDate} onChange={e => setChange({ ...change, toDate: e.target.value })} />
                 </label>
                 <button type="button" className="sa-secondary" disabled={busy || !change.toDate} onClick={async () => {
                   if (await decide("reschedule", { toDate: change.toDate })) setAdjusting(false);
-                }}>Move session</button>
+                }}>Move session</button></>}
                 <button type="button" className="text-button" onClick={() => setAdjusting(false)}>Cancel</button>
               </div>
             </div>
           )}
-          <p className="fine">A suggestion never starts a workout or gets harder by itself. Start it on the watch when you are ready.</p>
+          <p className="fine">Dashboard changes apply to the plan, not a workout already running. Fetch “Get today’s plan” on the watch to review your saved changes before starting.</p>
         </section>
       )}
 

@@ -48,6 +48,7 @@ module Presenter {
             line(dc, 214, "START to open", tiny, accent);
             return;
         }
+        if(v.ready() && v.stage==9) { v.weekly.draw(dc); return; }
         if (v.avatarScreen()) {
             var label = v.controller.features[:mode] == :LIVE ? "LIVE" : "DEMO 4x";
             avatarText(dc, 14, label, tiny, accent);
@@ -161,9 +162,9 @@ module Presenter {
                 line(dc, 157, c.mode == :DEMO ? "Simulated session" : (c.saved ? "Summary saved" : "Summary unsaved"), tiny, grey);
             }
             var routines = ["UP / DOWN details", "Follow your meal routine", "Follow your drink routine", "Make time to rest"];
-            line(dc, 176, routines[v.routine], tiny, grey);
+            line(dc, 176, v.missionSession && v.weekly!=null && v.weekly.status.length()>0 ? v.weekly.status : routines[v.routine], tiny, grey);
             line(dc, 197, v.sync.status, tiny, grey);
-            line(dc, 220, "START returns", tiny, white);
+            line(dc, 220, v.weekly!=null && v.weekly.pending!=null ? "START retries mission save" : "START returns", tiny, white);
             return;
         }
         if (c.lifecycle == :PAUSED) {
@@ -195,7 +196,7 @@ module Presenter {
         var width = dc.getWidth(); var height = dc.getHeight();
         // Same prototype composition, with extra room for the explicit run-offer hint.
         // The drink cue takes the small top line, so it never hides the coach's instruction.
-        avatarText(dc, 38, v.drinkDue ? "Drink. MENU to log" : model.workoutText, tiny, v.drinkDue ? Graphics.COLOR_YELLOW : grey);
+        avatarText(dc, 38, v.drinkDue ? "Drink. MENU to log" : (v.missionSession ? v.missionTitle : model.workoutText), tiny, v.drinkDue ? Graphics.COLOR_YELLOW : grey);
         var offered = model.advice == :READY_TO_RUN && model.canResumeRun && model.visualState != :SENSOR_UNAVAILABLE;
         if (offered) { avatarText(dc, 59, "MENU offers run option", tiny, grey); }
         var size = width * (offered ? 82 : 104) / 260;

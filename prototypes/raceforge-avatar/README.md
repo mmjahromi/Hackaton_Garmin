@@ -1,20 +1,21 @@
-# RaceForge animated avatar prototype
+# RaceForge — weekly fitness adventure
 
-An independently buildable, offline Garmin Connect IQ watch app for the Fēnix
-7 Pro's 260 × 260 round display. It demonstrates an expressive athlete using
-original `Graphics.Dc` artwork, four-pose running/walking animation, breathing,
-sweat, a starting stance and a short celebration.
+A functional, offline Monkey C watch app for the Fēnix 7 Pro (260 × 260 round MIP,
+API 5.2), extending the existing animated athlete without replacing its artwork.
+Choose a baseline and a gentle weekly plan, follow its mountain checkpoints, and
+confirm completed missions. Walking and recovery are planned activities.
 
-This directory is a standalone prototype intended for later integration with
-PacePilot's **Features**, **Decision** and lifecycle contracts. It does not replace
-PacePilot's App, View, delegates, sensors, session controller or coaching engine.
-All values in the demo are synthetic and visibly labeled **DEMO**.
+Merged into `dashboard-and-recovery` on 14 November 2026. See [current project status](../../STATUS.md). The original avatar presentation components are already embedded in PacePilot; this standalone adventure remains independently runnable. Its weekly journey is now also integrated into PacePilot through `source/Weekly.mc`, using PacePilot's existing workout/feedback and sharing. The trail itself is local in each app.
 
-## Build and run
+The prototype lives separately from PacePilot. It imports the team's actual
+controller, providers, pipeline and coaching engine by source-file path; it does
+not implement another coaching engine, session clock, web app or upload service.
 
-Open **this directory** in VS Code with Garmin's Monkey C extension, rather than
-opening another app's manifest. Select Connect IQ SDK **9.1.0**. The watch API
-profile is **5.2**. Keep your own signing key outside the repository.
+## Build from this repository
+
+Open **prototypes/raceforge-avatar** in VS Code with Garmin's Monkey C extension.
+Keep the full team checkout: `../../pacepilot-app/source/` supplies the shared
+modules. Select SDK **9.1.0 exactly** and keep the signing key outside git.
 
 ```sh
 cd prototypes/raceforge-avatar
@@ -22,88 +23,103 @@ bash scripts/build.sh /absolute/path/to/developer_key
 sdk_dir="$(cat "$HOME/Library/Application Support/Garmin/ConnectIQ/current-sdk.cfg")"
 "$sdk_dir/bin/connectiq"
 "$sdk_dir/bin/monkeydo" bin/RaceForge.prg fenix7pro
-```
 
-The macOS build script reads Garmin's selected SDK and rejects versions other
-than 9.1.0. Compilation uses **fenix7pro_sim**; simulator loading uses **fenix7pro**.
-The explicit `source` and `resources` paths in `monkey.jungle` are relative to
-this project. PacePilot's own source paths are unchanged and do not include it.
-
-## Controls
-
-| Button | Behavior |
-| --- | --- |
-| START | Advance the scene, wrapping after completion |
-| UP | Easy replay → tempo replay → original six static poses |
-| DOWN | Freeze/resume scene and animation time |
-| Hold MENU | Select replay/static mode or pause/resume |
-| BACK | Standard Garmin exit; returns from the menu to the demo |
-
-Each animated scene lasts 8 seconds. The easy replay includes comfortable running,
-above-target effort, easing, a flushed effort expression, walking, recovery,
-ready-to-run, unavailable HR and completion. The tempo replay demonstrates that
-160 bpm can be in target while the easy-run demo treats it differently. Ranges
-are configurable demonstration inputs, not universal HR zones or a second coach.
-
-## Verification after relocation
-
-Verified **November 14, 2026**, from `prototypes/raceforge-avatar/`:
-
-- Normal build: **BUILD SUCCESSFUL**, SDK 9.1.0, `fenix7pro_sim`.
-- Test build: **BUILD SUCCESSFUL**; simulator suite: **9 passed, 0 failed, 0 errors**.
-- Preserved `avatarDemoCycle` and `avatarStartDelegate` regressions.
-- Animation/lifecycle, workout context, coaching authority, missing/stale HR,
-  speed/stillness, replay pause, circular text clearance and offset widget tests pass.
-- 600 character renders: 18,552 ms in this host simulator; retained VM memory
-  unchanged at 38,520 bytes. This is not a hardware performance/battery claim.
-- No duplicate avatar declarations or name collisions with the team's classes.
-- Every pre-existing team file is byte-identical to the branch base.
-- Relative source, manifest, layout and image resource paths compile in this location.
-
-Reproduce with:
-
-```sh
+# Native simulator tests, including the original nine avatar regressions:
 bash scripts/test.sh /absolute/path/to/developer_key
 ```
 
-Garmin's runner returns exit code 1 even when its test summary passes. The script
-checks the actual summary and reports failure if it does not show a clean pass.
-Raw build/test logs are regenerated under ignored `bin/` and are not committed.
-The only compiler warnings are inherited from the generated shell: no language-
-specific resources declared and a 24 px launcher icon scaled to 40 px.
+Compiler target: `fenix7pro_sim`. Runner: `fenix7pro`. The combined build uses
+PacePilot's existing `-l 0` setting because its untyped modules produce inference
+errors at `-l 2`. No teammate source was edited. The renderer, model, animator,
+adapter and workout context remain unchanged from milestone 2.
 
-Physical-watch, manual button and on-device smoothness validation are **not run**.
-The existing [simulator recording](evidence/m2-easy-replay.mp4) and screenshots
-were captured from the original standalone milestone-2 build before relocation;
-the Monkey C code is unchanged. Some captured frames omit gray captions, so
-manual visual acceptance remains pending. See [the milestone report](MILESTONE2.md).
+## Play the first mission
 
-## Transfer to PacePilot later
+1. On first launch use UP/DOWN to choose baseline, available days, preferred
+   activity and daily time; START accepts each of the four choices.
+2. The summit opens in clearly labeled **DEMO**. START opens missions, START
+   previews the highlighted mission, then START begins it.
+3. The shared PacePilot 180-second replay runs at 4× (about 45 wall seconds).
+   Running animation stays at a normal visual rate while coaching time advances.
+4. At the summary, START opens the optional local check-ins; confirm all three to
+   record the result. Hold MENU on the summary saves without check-ins.
+5. The checkpoint moves only after this explicit confirmation. DEMO progress is
+   temporary and does not change the saved LIVE journey.
 
-The five reusable files are:
+For LIVE: hold MENU on the summit → Workout source → choose LIVE → START.
+The next mission uses its actual configured duration and the shared HR/GPS provider.
+Missing measurements remain unavailable. The app starts in DEMO on first launch, then restores the last confirmed source
+and its real progress after restart. No sensors start merely by browsing.
 
-- `source/AvatarModel.mc` — retained presentation data.
-- `source/AvatarRenderer.mc` — bounded character drawing only.
-- `source/AvatarAnimator.mc` — elapsed-time animation and optional speed response.
-- `source/AvatarAdapter.mc` — maps the existing snapshot/decision/lifecycle.
-- `source/AvatarWorkoutContext.mc` — optional workout presentation metadata.
+## Buttons
 
-Keep standalone App/View/delegates, demo controller, menus and tests in this
-prototype. The parent PacePilot view must own its redraws, clock and layout.
-Do not copy all prototype classes into PacePilot's compilation scope.
+| Screen | START | UP / DOWN | BACK / hold MENU |
+| --- | --- | --- | --- |
+| Setup | Accept choice / create week | Change selection | BACK uses defaults for temporary demo |
+| Summit | Mission list | — | BACK exits; MENU opens source/setup/avatar lab |
+| Missions | Preview | Select mission | BACK summit |
+| Preview | Start current mission | Review manual HR band | BACK list; MENU missed/change options |
+| Workout | Pause | DOWN manual walk; UP accepts run only when allowed | BACK pauses and asks to end |
+| Paused | Resume | — | BACK end confirmation |
+| End confirmation | Confirm highlighted choice | Keep paused / end | BACK keeps paused |
+| Summary | Check-in | — | MENU saves without check-in |
+| Check-in | Accept answer / save | Select answer | BACK summary |
+| Change proposal | Confirm highlighted choice | Keep original / confirm | BACK keeps original |
 
-At the inspected team base (`7b52e75`, default branch `dashboard-and-recovery`),
-`FeaturePipeline` publishes `sourceStatus.hr` and `sourceStatus.speed`, matching
-adapter defaults. `CoachEngine` publishes advice, reason, decisionId and
-canResumeRun with matching meanings. Before embedding, coordinate widget bounds,
-animation clock resets and workout-context ownership with the UI owner.
-The current adapter is prepared for that work; the shared app does not yet drive it.
+The old animated easy/tempo/static avatar lab is under summit MENU → Avatar pose
+lab. Its existing controls and all nine tests are preserved.
 
-`fromPacePilot()` follows the supplied advice without live HR thresholds. Optional
-normalized speed changes bounded visual cadence; it is not measured step cadence.
-Stillness stops locomotion. Missing/not-ready/stale HR is neutral and shown as
-`HR --`. No renderer sensor queries, network, persistent writes or coaching
-transitions occur. The richer easy/tempo classifier is for demo presentation only.
+## Progress, storage and adjustment semantics
 
-See [PROJECT.md](PROJECT.md), [AGENTS.md](AGENTS.md) and [MILESTONE2.md](MILESTONE2.md)
-for design, contracts, limitations and the detailed integration call pattern.
+- Three available activity days produce three sessions plus the summit check-in
+  (four checkpoints). Four/five available days produce four sessions plus the
+  summit (five checkpoints); the fifth available day can remain a flexible day.
+- Beginner templates are short and include optional mobility and recovery. HR
+  bands are manual illustrative settings, not inferred from fitness level.
+- Days are relative plan days 1–7, not a detailed calendar or automatic rollover.
+- The shared controller owns elapsed, moving and unknown-motion seconds. A timed
+  mission is not proof of verified active minutes: unknown motion is reported.
+- A result below its time goal is saved as partial and awards no checkpoint.
+- Missed/skipped missions never erase earned checkpoints. Shorten/move/skip are
+  inert proposals until explicitly confirmed. Moving reorders only the remaining
+  itinerary, preserves achievements and uses an unoccupied available day.
+- Skips remain visibly skipped, not fabricated completions. The final explicit
+  weekly check-in closes the week; with skips the title is **Week reviewed**.
+- A versioned string-key `Application.Storage` record retains the real profile,
+  missions, position, session sequence, latest 8 summaries and latest 12 changes.
+  Unknown/corrupt schemas are preserved read-only; save failures roll back progress.
+- Check-ins are user reports of effort, fatigue and fueling, never diagnoses.
+  Significant reported fatigue offers a confirmed adjustment, without stacking
+  missed training. Setup cannot overwrite a week that already has achievements
+  or confirmed changes.
+
+## Post-merge verification
+
+On 14 November 2026, merge commit `8e6c7c1` on `dashboard-and-recovery` was checked with fresh SDK 9.1.0 production/test builds and the simulator suite: **21 passed, 0 failed, 0 errors**. PacePilot's production/test builds also succeeded. The merge leaves the main apps' source unchanged and imports their existing shared modules. See [STATUS.md](../../STATUS.md#raceforge-weekly-adventure-merge). No new screenshots or physical-watch checks were performed.
+
+## Verification and handoff
+
+SDK 9.1.0 normal/test builds pass on `fenix7pro_sim`. The final simulator suite
+reports **21 passed, 0 failed, 0 errors**, including native storage restart at the
+maximum bounded history sizes, actual BehaviorDelegate callbacks, full-week
+completion and LIVE provider/session resource teardown. Raw logs stay under
+ignored `bin/`; the runner's misleading exit code 1 is handled using its test summary.
+Only the two inherited shell warnings remain (language resources and icon scaling).
+
+[Milestone 3 report](MILESTONE3.md) records test results, architecture, evidence and
+remaining validation. [Final setup screenshot](evidence/m3-setup.png) and the
+[Gate A summit screenshot](evidence/m3-gate-a-summit.png) are actual simulator captures.
+The existing [avatar replay](evidence/m2-easy-replay.mp4) documents milestone-2 art,
+not an end-to-end recording of the new adventure.
+
+Physical-watch HR/GPS acquisition, haptic feel, physical buttons and MIP smoothness
+remain unverified. The simulator LIVE test exercises Garmin API paths; its values
+are simulator inputs, not physical measurements. No watch-to-dashboard transport
+is implemented or claimed. The weekly challenge is the only implemented journey;
+race-specific journeys, respiration diagnostics and mountain styles are future work.
+
+PacePilot now embeds the pure journey/storage model and summit renderer with its
+own mission UI and result adapter. This standalone flow still owns its own app.
+Further visual integration needs agreement on widget bounds and presentation. In the existing app, use its
+already-running controller; do not instantiate a second one beside it. The eight
+imported shared files are unchanged, and PacePilot's own build scope is unchanged.

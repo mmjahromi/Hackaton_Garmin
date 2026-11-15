@@ -1,3 +1,11 @@
+# Current weekly integration verification
+
+14 November 2026: **80 passed, 0 failed, 0 errors** in the Fenix7 Pro simulator; SDK9.1.0 production/test builds succeeded. See [raw log](tests/weekly-simulator-results.txt) and [current integration evidence](../STATUS.md#current-integration-verification). Release binaries/checksums were refreshed. Weekly entry and abandoned-plan regressions were observed failing before fixes. No screenshots or physical-watch checks were performed. Everything below is retained historical evidence.
+
+> **Current evidence is tracked in [STATUS.md](../STATUS.md#verification-evidence).** The latest implementation commit (`c5fa03b`) records 68 PacePilot simulator tests and no check-in before START activation; the earlier `1ca150b` records simulator-to-dashboard LIVE delivery. Gut Train records 35 tests and the dashboard records 83. These are prior reported results; the saved raw logs below cover earlier suites. No suites were rerun for the documentation update.
+>
+> **Everything below is historical verification evidence**, except the reusable hardware operator checklist. Counts and references to “current” describe each named revision. Use the [current README](README.md) for controls and [remaining acceptance](../STATUS.md#remaining-gaps-and-acceptance) for work still open. Physical-watch acceptance remains outstanding.
+
 # PacePilot verification
 
 ## Nutrition/recovery revision — 14 November 2026
