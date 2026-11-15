@@ -308,4 +308,8 @@ Fuelling is part of the workout, so a long session does not need Gut Train open 
 - **Logging.** The workout menu has "Log drink" (150 ml) and "Log food" (25 g carbs). Neither pauses the workout. Totals show on the metrics page.
 - **Dashboard.** With sharing on, the totals travel in the live updates and the session summary, and the Today tab shows "Logged during workouts today".
 
-68 simulator tests pass. Not verified by eye: the opening screen with the icon, and the drink cue's position on the workout screen.
+## Effort readings for the fitness trend
+
+`EffortMeter.mc` adds up heart rate and GPS speed once a second during a live workout, counting only seconds when the workout is active, the heart rate is ready and between 30 and 250 bpm, and the speed is between 0.8 and 6.0 m/s. When sharing is on, the session summary carries the average heart rate, average speed and the number of seconds counted (`avgHr`, `avgSpeedMps`, `effSec`). The dashboard turns these into heartbeats per km. Nothing new is shown on the watch.
+
+69 simulator tests pass. Not verified by eye: the opening screen with the icon, and the drink cue's position on the workout screen.

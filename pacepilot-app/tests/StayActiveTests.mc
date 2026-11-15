@@ -216,3 +216,21 @@ function drinkReminderSettingCycles(logger as Logger) as Boolean {
     v.shutdown();
     return true;
 }
+
+(:test)
+function effortMeterCountsOnlyMovingSecondsWithHeartRate(logger as Logger) as Boolean {
+    var m = new EffortMeter();
+    Test.assert(m.avgHr() == null && m.avgSpeedMps() == null);
+    m.add(:ACTIVE, {:hrReady => true, :hrBpm => 120, :speedMps => 1.5});
+    m.add(:ACTIVE, {:hrReady => true, :hrBpm => 130, :speedMps => 1.7});
+    m.add(:PAUSED, {:hrReady => true, :hrBpm => 200, :speedMps => 1.6});    // paused
+    m.add(:ACTIVE, {:hrReady => false, :hrBpm => 200, :speedMps => 1.6});   // reading not ready
+    m.add(:ACTIVE, {:hrReady => true, :hrBpm => null, :speedMps => 1.6});   // no heart rate
+    m.add(:ACTIVE, {:hrReady => true, :hrBpm => 200, :speedMps => null});   // no speed
+    m.add(:ACTIVE, {:hrReady => true, :hrBpm => 200, :speedMps => 0.2});    // standing
+    m.add(:ACTIVE, {:hrReady => true, :hrBpm => 200, :speedMps => 30.0});   // GPS glitch
+    m.add(:ACTIVE, null);
+    Test.assert(m.seconds == 2 && m.avgHr() == 125);
+    var speed = m.avgSpeedMps();
+    return speed > 1.59 && speed < 1.61;
+}

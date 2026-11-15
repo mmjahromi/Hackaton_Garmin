@@ -11,6 +11,11 @@ class DashboardSync {
         var body = new SummaryStore().encode(summary);
         if (summary.hasKey(:planId)) { body["planId"] = summary[:planId]; }
         if (summary.hasKey(:fluidMl)) { body["fluidMl"] = summary[:fluidMl]; }
+        if (summary.hasKey(:avgHr)) {
+            body["avgHr"] = summary[:avgHr];
+            body["avgSpeedMps"] = summary[:avgSpeedMps];
+            body["effSec"] = summary[:effSec];
+        }
         if (summary.hasKey(:carbsG)) { body["carbsG"] = summary[:carbsG]; }
         status = "Sharing...";
         try {

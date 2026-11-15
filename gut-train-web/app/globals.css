@@ -1477,3 +1477,70 @@ tr.fresh td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---- Fitness trend ----------------------------------------------------- */
+
+.sa-trend-lead {
+  padding-top: 16px;
+  max-width: 64ch;
+  font-size: 17px;
+  text-wrap: pretty;
+}
+
+.sa-trend-chart {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  margin: 8px 0 12px;
+}
+
+.sa-trend-chart .grid {
+  stroke: var(--line);
+  stroke-dasharray: 3 4;
+}
+
+.sa-trend-chart .axis {
+  fill: var(--ink-3);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.sa-trend-chart .value {
+  fill: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sa-trend-chart .series {
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sa-trend-chart .mark {
+  fill: var(--series);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.sa-trend-chart .hit {
+  fill: transparent;
+}
+
+.sa-trend-chart .point {
+  outline: none;
+  cursor: default;
+}
+
+.sa-trend-chart .point:hover .mark,
+.sa-trend-chart .point:focus-visible .mark {
+  r: 7;
+}
+
+.sa-trend-chart .point:focus-visible .hit {
+  stroke: var(--accent);
+  stroke-width: 2;
+}

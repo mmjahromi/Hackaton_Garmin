@@ -4,6 +4,7 @@ import { mealsOn } from './meals.js';
 import { demoProfile, demoSessions, demoMeals } from './demo.js';
 import { connectionView, liveState } from './live.js';
 import { calendarDate } from './profile.js';
+import { buildEfficiency } from './efficiency.js';
 
 // The browser sends its own calendar date so "today" matches the user's
 // day, not the server's UTC day. Accept it only when within a day of ours.
@@ -50,8 +51,14 @@ export async function loadOverview(store, { demo, today, now = Math.floor(Date.n
     fluidMl: logged.reduce((sum, s) => sum + (s.fluidMl ?? 0), 0),
     carbsG: logged.reduce((sum, s) => sum + (s.carbsG ?? 0), 0),
   };
+  const efficiency = buildEfficiency(sessions);
+  // A fitness trend is extra evidence for an offer of a longer session. It
+  // never creates one: the plan's own rules decide that first.
+  if (efficiency.direction === 'improving' && plan.suggestion.status === 'suggested' && /little longer/.test(plan.suggestion.reason)) {
+    plan.suggestion.basis = [...plan.suggestion.basis, 'Your usual pace is costing fewer heartbeats than before'];
+  }
   return {
-    demo, today, now, profile, plan, workoutIntake,
+    demo, today, now, profile, plan, workoutIntake, efficiency,
     recent: sessions.slice(0, 14),
     energy: estimateEnergy(profile ?? {}),
     mealsToday: mealsOn(meals, today),

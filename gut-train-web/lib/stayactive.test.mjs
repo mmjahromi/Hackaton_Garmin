@@ -8,6 +8,7 @@ import { watchConfig, demoWatchConfig } from './watchConfig.js';
 import { demoProfile, demoSessions, demoMeals } from './demo.js';
 import { loadOverview, resolveToday } from './overview.js';
 import { normalizePaceSession } from './pace.js';
+import { buildEfficiency, beatsPerKm } from './efficiency.js';
 
 const TODAY = '2026-11-14'; // a Saturday
 const ALL_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -221,4 +222,53 @@ test('workout intake from PacePilot is validated and totalled for today', async 
   };
   const real = await loadOverview(store, { demo: false, today: TODAY, now: 1 });
   assert.deepEqual(real.workoutIntake, { fluidMl: 450, carbsG: 75 });
+});
+
+const eff = (offset, avgHr, avgSpeedMps, effSec = 900) => ({ ...session(offset), avgHr, avgSpeedMps, effSec });
+
+test('heartbeats per km is heart rate divided by speed', () => {
+  assert.equal(beatsPerKm(120, 1.6667), 1200);   // 6 km/h is 0.1 km a minute
+  assert.equal(beatsPerKm(150, 2.7778), 900);    // 10 km/h
+});
+
+test('fitness trend needs enough similar sessions and explains when it cannot be shown', () => {
+  assert.equal(buildEfficiency([]).available, false);
+  assert.match(buildEfficiency([session(-1)]).reason, /five minutes/);
+  const few = buildEfficiency([eff(-3, 125, 1.6), eff(-2, 124, 1.6), eff(-1, 123, 1.6)]);
+  assert.equal(few.available, false);
+  assert.match(few.reason, /4 sessions/);
+  assert.equal(buildEfficiency([eff(-4, 125, 1.6, 120), eff(-3, 125, 1.6), eff(-2, 125, 1.6), eff(-1, 125, 1.6)]).available, false);
+});
+
+test('fitness trend compares earlier and later sessions at the usual pace', () => {
+  const improving = buildEfficiency([eff(-6, 130, 1.6), eff(-5, 129, 1.6), eff(-3, 124, 1.6), eff(-1, 122, 1.6)]);
+  assert.deepEqual([improving.available, improving.direction, improving.changePct], [true, 'improving', -5]);
+  assert.equal(improving.points[0].date < improving.points[3].date, true);   // oldest first
+  const steady = buildEfficiency([eff(-6, 125, 1.6), eff(-5, 126, 1.6), eff(-3, 125, 1.6), eff(-1, 126, 1.6)]);
+  assert.equal(steady.direction, 'steady');
+  const rising = buildEfficiency([eff(-6, 120, 1.6), eff(-5, 121, 1.6), eff(-3, 128, 1.6), eff(-1, 130, 1.6)]);
+  assert.equal(rising.direction, 'rising');
+  assert.match(rising.summary, /Heat, hills/);
+});
+
+test('a session at a clearly different pace is left out, not compared', () => {
+  const result = buildEfficiency([eff(-6, 130, 1.6), eff(-5, 129, 1.6), eff(-4, 165, 2.8), eff(-3, 124, 1.6), eff(-1, 122, 1.6)]);
+  assert.deepEqual([result.available, result.leftOut, result.points.length], [true, 1, 4]);
+});
+
+test('pace summaries accept efficiency readings only as a complete, valid set', () => {
+  const base = { schemaVersion: 1, mode: 'LIVE', goalMet: false, sessionId: 5, goalSec: 1200, sessionSec: 600, movingSec: 500, unknownMotionSec: 0, hrValidSec: 500, walkPromptCount: 0, endedAt: 700 };
+  const saved = normalizePaceSession({ ...base, avgHr: 124, avgSpeedMps: 1.61, effSec: 480 });
+  assert.deepEqual([saved.avgHr, saved.avgSpeedMps, saved.effSec], [124, 1.61, 480]);
+  assert.equal('avgHr' in normalizePaceSession(base), false);
+  for (const bad of [{ avgHr: 124 }, { avgHr: 124, avgSpeedMps: 1.6 }, { avgHr: 500, avgSpeedMps: 1.6, effSec: 60 }, { avgHr: 124, avgSpeedMps: 0, effSec: 60 }, { avgHr: 124.5, avgSpeedMps: 1.6, effSec: 60 }]) {
+    assert.throws(() => normalizePaceSession({ ...base, ...bad }));
+  }
+});
+
+test('the demo history shows an improving trend with one session left out', () => {
+  const result = buildEfficiency(demoSessions(TODAY));
+  assert.deepEqual([result.available, result.direction, result.points.length, result.leftOut, result.withoutReadings], [true, 'improving', 7, 1, 1]);
+  assert.ok(result.changePct < -3 && result.changePct > -10);
+  assert.ok(result.points.every(point => point.demo));
 });

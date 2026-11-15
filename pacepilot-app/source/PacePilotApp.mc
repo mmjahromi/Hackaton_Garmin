@@ -59,6 +59,7 @@ class PacePilotView extends WatchUi.View {
     var lastDrinkSec = 0;
     var drinkDue = false;
     var drinkCueId = -1000;
+    var effort_meter = new EffortMeter();
     var planDemo = false;      // the accepted plan came from the demo data
     var linkTried = false;     // connect to the dashboard once per launch
     var demoTried = false;
@@ -144,6 +145,7 @@ class PacePilotView extends WatchUi.View {
         origin = System.getTimer(); lastReal = origin; virtualMs = 0;
         lowGate = new LowBandGate(); alerts = new AlertService(); summaryPage = 0; feedbackStage = 0; effort = 1; routine = 0;
         fluidMl = 0; carbsG = 0; lastDrinkSec = 0; drinkDue = false;
+        effort_meter = new EffortMeter();
         controller.dispatch(:START); controller.tick(0);
     }
     function onTick() as Void {
@@ -168,6 +170,8 @@ class PacePilotView extends WatchUi.View {
             lastReal = realNow;
             signal(realNow);
             drinkCue(realNow);
+            // One sample per real second in a live session.
+            if (mode == :LIVE) { effort_meter.add(controller.lifecycle, controller.features); }
         }
         publishLive();
         syncAvatarTimer(); WatchUi.requestUpdate();
@@ -238,6 +242,11 @@ class PacePilotView extends WatchUi.View {
                 // Lets the dashboard mark its suggestion as done. Added after
                 // the local save so the stored record keeps its schema.
                 if (planId != null) { controller.summary[:planId] = planId; }
+                if (effort_meter.seconds > 0) {
+                    controller.summary[:avgHr] = effort_meter.avgHr();
+                    controller.summary[:avgSpeedMps] = effort_meter.avgSpeedMps();
+                    controller.summary[:effSec] = effort_meter.seconds;
+                }
                 controller.summary[:fluidMl] = fluidMl;
                 controller.summary[:carbsG] = carbsG;
                 if (mode == :LIVE && next != null) {

@@ -48,6 +48,93 @@ function describe(suggestion) {
 }
 const optionalNumber = value => (value === "" || value == null ? null : Number(value));
 
+// One line of points, oldest on the left. Lower is better, so the axis is
+// labelled and the first and last values are written beside their points.
+function TrendChart({ points }) {
+  const W = 640, H = 220, left = 56, right = 64, top = 22, bottom = 36;
+  const values = points.map(p => p.beatsPerKm);
+  const low = Math.floor((Math.min(...values) - 20) / 50) * 50;
+  const high = Math.ceil((Math.max(...values) + 20) / 50) * 50;
+  const x = index => left + (points.length === 1 ? 0 : (index * (W - left - right)) / (points.length - 1));
+  const y = value => top + ((high - value) * (H - top - bottom)) / (high - low);
+  const ticks = [];
+  for (let value = low; value <= high; value += (high - low) / 2) ticks.push(Math.round(value));
+  const last = points.length - 1;
+  return (
+    <svg className="sa-trend-chart" viewBox={`0 0 ${W} ${H}`} role="group" aria-label="Heartbeats per kilometre by session, oldest first. The same figures are in the table below.">
+      {ticks.map(value => (
+        <g key={value}>
+          <line className="grid" x1={left} x2={W - right} y1={y(value)} y2={y(value)} />
+          <text className="axis" x={left - 10} y={y(value) + 4} textAnchor="end">{value}</text>
+        </g>
+      ))}
+      <polyline className="series" fill="none" points={points.map((p, i) => `${x(i)},${y(p.beatsPerKm)}`).join(" ")} />
+      {points.map((p, i) => (
+        <g key={p.endedAt} className="point" tabIndex={0} role="img"
+          aria-label={`${shortDate(p.date)}: ${p.beatsPerKm} heartbeats per km at ${p.speedKmh} km/h, average ${p.avgHr} bpm`}>
+          <title>{`${shortDate(p.date)}: ${p.beatsPerKm} beats per km · ${p.speedKmh} km/h · ${p.avgHr} bpm average`}</title>
+          <circle className="hit" cx={x(i)} cy={y(p.beatsPerKm)} r="14" />
+          <circle className="mark" cx={x(i)} cy={y(p.beatsPerKm)} r="5" />
+        </g>
+      ))}
+      <text className="value" x={x(0)} y={y(points[0].beatsPerKm) - 12} textAnchor="middle">{points[0].beatsPerKm}</text>
+      <text className="value" x={x(last) + 12} y={y(points[last].beatsPerKm) + 4}>{points[last].beatsPerKm}</text>
+      <text className="axis" x={x(0)} y={H - 10} textAnchor="middle">{shortDate(points[0].date)}</text>
+      <text className="axis" x={x(last)} y={H - 10} textAnchor="middle">{shortDate(points[last].date)}</text>
+    </svg>
+  );
+}
+
+const TREND_LABEL = { improving: "Improving", steady: "Steady", rising: "Costing more lately" };
+
+function FitnessTrend({ efficiency, demo }) {
+  const points = efficiency.points;
+  return (
+    <section className="block" aria-labelledby="trend-h">
+      <div className="block-head">
+        <h2 id="trend-h">Fitness trend: heartbeats per km</h2>
+        {demo && <span className="tag">Demo data</span>}
+      </div>
+      {efficiency.available ? (
+        <>
+          <p className="sa-trend-lead">
+            <strong>{TREND_LABEL[efficiency.direction]}.</strong> {efficiency.summary}
+          </p>
+          <dl className="facts sa-facts">
+            <div><dt>Earlier sessions</dt><dd>{efficiency.beforeBeatsPerKm}<small> beats per km</small></dd></div>
+            <div><dt>Recent sessions</dt><dd>{efficiency.afterBeatsPerKm}<small> beats per km</small></dd></div>
+            <div><dt>Your usual pace</dt><dd>{efficiency.usualPaceKmh}<small> km/h</small></dd></div>
+          </dl>
+          <TrendChart points={points} />
+        </>
+      ) : (
+        <p className="empty">{efficiency.reason}</p>
+      )}
+      {points.length > 0 && (
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Sessions used for the fitness trend">
+          <table>
+            <thead><tr><th scope="col">Session</th><th scope="col" className="num">Pace</th><th scope="col" className="num">Average heart rate</th><th scope="col" className="num">Readings</th><th scope="col" className="num">Beats per km</th></tr></thead>
+            <tbody>
+              {[...points].reverse().map(p => (
+                <tr key={p.endedAt}>
+                  <td>{shortDate(p.date)}</td><td className="num">{p.speedKmh} km/h</td><td className="num">{p.avgHr} bpm</td>
+                  <td className="num">{p.minutes} min</td><td className="num">{p.beatsPerKm}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="fine">
+        Lower means your heart is working less for the same pace. It is worked out as average heart rate divided by speed, over the minutes the watch had both a heart rate and GPS speed. Only sessions within 15% of your usual pace are compared
+        {efficiency.leftOut > 0 && `; ${efficiency.leftOut} at a different pace ${efficiency.leftOut === 1 ? "was" : "were"} left out`}
+        {efficiency.withoutReadings > 0 && `; ${efficiency.withoutReadings} had too few readings to use`}.
+        Heat, hills, sleep and caffeine all move heart rate, so read it as a trend over weeks, never from one session. It is not a medical measure.
+      </p>
+    </section>
+  );
+}
+
 export default function Home() {
   const [demo, setDemo] = useState(false);
   const [data, setData] = useState(null);
@@ -365,6 +452,9 @@ export default function Home() {
           <p className="fine">Done days come from sessions finished on the watch with sharing on. A missed day is a planned day with no session; it is information, not a debt to repay.</p>
         </section>
       )}
+
+      {/* Fitness trend: heartbeats per km at the usual pace */}
+      {!needsSetup && <FitnessTrend efficiency={data.efficiency} demo={demo} />}
 
       {/* Nutrition that supports the same goal */}
       <section className="block" aria-labelledby="food-h">

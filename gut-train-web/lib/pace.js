@@ -37,6 +37,14 @@ export function normalizePaceSession(body) {
       result[key] = body[key];
     }
   }
+  // Averages over the seconds the watch had both a heart rate and a moving
+  // speed. All three arrive together or not at all.
+  if (body.avgHr != null || body.avgSpeedMps != null || body.effSec != null) {
+    if (!Number.isInteger(body.avgHr) || body.avgHr < 30 || body.avgHr > 250) throw new Error("Invalid avgHr");
+    if (!inRange(body.avgSpeedMps, [0.1, 15])) throw new Error("Invalid avgSpeedMps");
+    if (!Number.isInteger(body.effSec) || body.effSec < 1 || body.effSec > 3600) throw new Error("Invalid effSec");
+    result.avgHr = body.avgHr; result.avgSpeedMps = body.avgSpeedMps; result.effSec = body.effSec;
+  }
   if (body.planId != null) {
     if (typeof body.planId !== "string" || !/^[A-Za-z0-9_:.-]{1,64}$/.test(body.planId)) throw new Error("Invalid planId");
     result.planId = body.planId;
