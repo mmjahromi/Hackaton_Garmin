@@ -4,22 +4,29 @@ const weekday = date => WEEKDAYS[(new Date(date + 'T00:00:00Z').getUTCDay() + 6)
 export const planId = (date, demo = false) => `stay_active:${demo ? 'demo' : 'real'}:${date}`;
 export function normalizeDecision(body, suggestion, today) {
   object(body);
-  if (body.id !== suggestion.id || suggestion.status === 'done') throw new Error('Choose the current unfinished suggestion');
-  if (!['accept', 'adjust', 'reschedule', 'easier', 'rest'].includes(body.action)) throw new Error('Invalid action');
+  if (body.id !== suggestion.id || (suggestion.status === 'done' && body.action !== 'new')) throw new Error('Choose the current unfinished suggestion');
+  if (!['accept', 'adjust', 'reschedule', 'easier', 'rest', 'new'].includes(body.action)) throw new Error('Invalid action');
   if (body.durationMin !== undefined) integer(body.durationMin, 10, 90, 'durationMin');
   if (body.activity !== undefined && !ACTIVITIES.includes(body.activity)) throw new Error('Invalid activity');
   if (body.toDate !== undefined) calendarDate(body.toDate);
   if (body.action === 'adjust' && body.durationMin === undefined && body.activity === undefined) throw new Error('Choose a duration or activity');
-  if (body.action !== 'adjust' && (body.durationMin !== undefined || body.activity !== undefined)) throw new Error('Duration and activity require adjust');
+  if (!['adjust', 'new'].includes(body.action) && (body.durationMin !== undefined || body.activity !== undefined)) throw new Error('Duration and activity require adjust');
   if (body.action !== 'reschedule' && body.toDate !== undefined) throw new Error('A new date requires reschedule');
   if (body.action === 'reschedule' && (!body.toDate || body.toDate <= today || body.toDate > shiftDate(today, 14))) throw new Error('Reschedule within the next 14 days');
+  if (body.action === 'new' && (suggestion.status !== 'done' || body.durationMin === undefined || body.activity === undefined)) throw new Error('Choose an activity and duration after completing the current plan');
   let next = { ...suggestion };
+  if (body.action === 'new') {
+    const sequence = Number(suggestion.id.match(/:extra:(\d+)$/)?.[1] ?? 0) + 1;
+    next = { ...next, id: `${planId(today, suggestion.demo)}:extra:${sequence}`, date: today,
+      kind: 'workout', activity: body.activity, durationMin: body.durationMin, status: 'adjusted',
+      basis: ['An optional additional session you chose. Completed workouts remain in your history.'] };
+  }
   if (body.action === 'accept') next.status = 'accepted';
   if (body.action === 'adjust') next = { ...next, kind: 'workout', activity: body.activity ?? next.activity ?? 'walk', durationMin: body.durationMin ?? Math.max(10, next.durationMin), status: 'adjusted' };
   if (body.action === 'easier') next = { ...next, kind: 'workout', activity: next.activity === 'run_walk' ? 'walk' : next.activity ?? 'walk', durationMin: Math.max(10, Math.round(next.durationMin * 0.75)), status: 'adjusted' };
   if (body.action === 'rest') next = { ...next, kind: 'rest', activity: null, durationMin: 0, status: 'rest_chosen' };
   if (body.action === 'reschedule') next = { ...next, date: body.toDate, status: 'rescheduled' };
-  const reasons = { accept: 'You accepted this plan.', adjust: 'You adjusted this plan to suit you.', easier: 'You chose an easier session.', rest: 'You chose rest today.', reschedule: `You moved this session to ${body.toDate}.` };
+  const reasons = { new: 'You chose an additional session. Rest is still an option.', accept: 'You accepted this plan.', adjust: 'You adjusted this plan to suit you.', easier: 'You chose an easier session.', rest: 'You chose rest today.', reschedule: `You moved this session to ${body.toDate}.` };
   next.reason = reasons[body.action];
   next.basis = [...next.basis, reasons[body.action]];
   return { id: body.id, action: body.action, date: today, ...(body.toDate ? { toDate: body.toDate } : {}), suggestion: next, demo: suggestion.demo };

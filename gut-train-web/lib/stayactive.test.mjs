@@ -231,3 +231,38 @@ test('workout intake from PacePilot is validated and totalled for today', async 
   assert.deepEqual([next.kind, next.activity, next.durationMin, next.status], ['workout', 'walk', 30, 'adjusted']);
   assert.throws(() => normalizeDecision({ id: next.id, action: 'adjust', durationMin: 30 }, {...next, status: 'done'}, TODAY));
 });
+
+test('additional sessions have independent completion and preserve recorded history', () => {
+  const first = plan([]).suggestion;
+  const recorded = session(0, { planId: first.id });
+  const before = JSON.stringify(recorded);
+  const completed = plan([recorded]).suggestion;
+  const added = normalizeDecision({ id: completed.id, action: 'new', activity: 'walk', durationMin: 15 }, completed, TODAY);
+  const current = plan([recorded], { decisions: [added] });
+  assert.notEqual(current.suggestion.id, first.id);
+  assert.deepEqual([current.suggestion.status, current.suggestion.durationMin], ['adjusted', 15]);
+  assert.equal(current.consistency.at(-1).durationMin, 20);
+  assert.equal(JSON.stringify(recorded), before);
+  const edited = normalizeDecision({ id: current.suggestion.id, action: 'adjust', durationMin: 10 }, current.suggestion, TODAY);
+  assert.equal(edited.suggestion.id, current.suggestion.id);
+  const second = session(0, { sessionId: recorded.sessionId + 1200, planId: current.suggestion.id, sessionSec: 600 });
+  const finished = plan([recorded, second], { decisions: [edited] });
+  assert.equal(finished.suggestion.status, 'done');
+  assert.equal(finished.consistency.at(-1).durationMin, 30);
+  const third = normalizeDecision({ id: finished.suggestion.id, action: 'new', activity: 'walk', durationMin: 10 }, finished.suggestion, TODAY);
+  assert.notEqual(third.suggestion.id, current.suggestion.id);
+  assert.equal(plan([recorded, second], { decisions: [third] }).suggestion.status, 'adjusted');
+});
+
+test('additional session validation rejects unfinished, stale and incomplete choices', () => {
+  const current = plan([]).suggestion;
+  const body = { id: current.id, action: 'new', activity: 'walk', durationMin: 15 };
+  assert.throws(() => normalizeDecision(body, current, TODAY));
+  const done = { ...current, status: 'done' };
+  for (const changed of [{ id: 'old' }, { activity: undefined }, { durationMin: undefined }, { durationMin: 0 }, { activity: 'invalid' }]) {
+    assert.throws(() => normalizeDecision({ ...body, ...changed }, done, TODAY));
+  }
+  const demo = normalizeDecision(body, { ...done, demo: true }, TODAY).suggestion;
+  assert.equal(demo.demo, true);
+  assert.match(demo.id, /^stay_active:demo:/);
+});
